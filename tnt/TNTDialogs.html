@@ -1,0 +1,526 @@
+<!-- TNTDialogs.html — the dialog + slide-out panel markup for the TNT
+     screens. Extracted from Team/toSessionsTNT.html (lines 69-577); the
+     screen body itself is in Schedule.html.
+
+     Still jQuery UI dialogs, unchanged, because MeetTNT.js drives them
+     with .dialog() calls. Converting them to Bootstrap modals/offcanvas
+     is the NEXT step (the ssDialog shim) — at which point this file's
+     wrappers change but its inner content largely does not.
+
+     Loaded ONCE into body-level #lmTntDialogs by shared/meettnt.js.
+     Body level matters: jQuery UI reparents a dialog to <body> on init
+     anyway, and Bootstrap modals need to sit outside any transformed or
+     positioned ancestor to avoid stacking-context bugs. -->
+<div id="dgStartOfDay" style="display:none;">
+   <div class="dgEntryRow" style="display:flex;">
+       <label for="stdTime" id="txSegmentLabel" style="width:140px;">Start of Day Time:</label>
+       <input type="text" class="data" value="" size="6" id="stdTime" />
+   </div>
+   <div id="sodMsg" style="margin-top:5px;"><span style="color:gray;font-size:smaller;">(use am or pm to differentiate times)</span></div>
+</div>
+
+<div id="dgScoreValidation" style="display:none;">
+   <div class="data"><span class="gridHeading">Score Validation</span> is used to validate your flights and score records to ensure the flight is configured correctly, scores are configured correctly and if completed scores are calculated accurately. Changing scoring rules in the middle of a meet could lead to some issues and this validation will verify all is correct.
+   When something is off it will be reported here to you. </div>
+   <div style="display:flex;justify-content:space-between;margin-top:6px;">
+       <div class="gridHeading">Validation Issues Discovered:</div>
+       <button type="button" class="ssButton" OnClick="DoScoreValidation()">Perform Validation</button>
+   </div>
+   <div id="svValidationIssues">
+
+   </div>
+   <div id="svMsg" style="margin-top:5px;"></div>
+</div>
+
+<div id="dgNewTNTSession" style="display:none;">
+   <input type="hidden" id="dtSessionDateYMD" />
+   <div class="dgEntryRow" style="display:flex;">
+       <div class="lbEntry">Session #:</div>
+       <div style="font-weight:bold;" id="txSessionNo">1</div>
+   </div>
+   <div class="dgEntryRow" style="display:flex;vertical-align: middle;">
+       <div class="lbEntry" style="padding-top:3px;">Session Date:</div>
+       <div id="dtSessionDate" style="padding-top:3px;"></div>
+       <div>&nbsp;&nbsp;
+           <label for="edStartTime"><b>Start Time:</b>&nbsp;</label><input type="text" id="edSessionStartTime" size="5" class="data" />
+       </div>
+   </div>
+   <div class="dgEntryRow" style="display:flex;">
+       <div class="lbEntry">Select Level(s):</div>
+       <div id="pnSelectedLevels"></div>
+       <div id="cbLevels" style="margin-left:10px;"><select class="data" id="cbSelectLevel"></select></div>
+   </div>
+   <div class="dgEntryRow" style="display:flex;">
+       <div class="lbEntry">Select Category(s):</div>
+       <div id="asdTypes"></div>
+   </div>
+   <div class="dgEntryRow" style="display:flex;">
+       <div class="lbEntry">Select Routine(s):</div>
+       <div id="asdRoutines"></div>
+   </div>
+   <div class="dgEntryRow" style="max-height:350px;overflow-y:auto;">
+       <div><b>Athlete Selection</b>&nbsp;&nbsp;(<span id="asdAthleteCount"></span>)</div>
+       <div id="asdAthletes"></div>
+   </div>
+</div>
+
+<div id="pnMeetLevelSummary" class="noprint" style="right:-370px;">
+    <div style="display:flex;justify-content:space-between;">
+       <div class="label">
+           <button class="ssButton" type="button" id="btOpenMLS" OnClick="OpenMeetLevelSummary()" style="display:nonex;"><</button>
+           <div id="pnMLSTitle" style="margin-left:12px;padding-top:12px;font-size:14px;font-weight:bold;">Assignments</div>
+       </div>
+       <div><button type="button" class="ssButton" style="margin-right:12px !important;margin-top:12px !important;" id="btHideMeetLevelSummary" OnClick="HideMeetLevelSummary()">Hide ></button></div>
+    </div>
+    <div id="pnMeetLevelSummaryContent"></div>
+    <div id="pnUnAssignedAthletes" style="display:none;">
+        <div class="label" style="padding:4px;margin-top:5px;"><span id="txUACount"></span> Unassigned Athletes for <span id="txUALevelEvent"></span></div>
+        <div id="pnUnAssignedAthletesList" style="overflow-y:auto;max-height:250px;padding:6px;"></div>
+        <div style="margin-top:2px;display:flex;justify-content:space-between;">
+            <div>&nbsp;</div>
+            <div style="margin-right:6px;">
+               <button class="ssButton" type="button" id="btCloseUAL" OnClick="CloseUnassignedAthletes()">Close</button>
+            </div>
+        </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-left:12px;margin-right:12px;margin-top:5px;">
+        <div><div># = number of athletes</div><div>R = remaining to schedule <span class="GrayText">(click on cell to view athletes)</span></div></div>
+        <div>
+           <a href="#" onclick="RefreshMeetLevelSummary()" class="SSicon" title="refresh" id="btRefreshMeetLevelSummary" style="display:inline-block;vertical-align:middle;">
+              <object data="https://www.sportzsoft.com/images/LMIcons/RefreshIcon.svg" type="image/svg+xml" class="SSicon" style="pointer-events:none;"></object>
+           </a>
+        </div>
+    </div>
+</div>
+
+<div id="dgTNTSegmentsEditor" style="display:none;">
+  <input type="hidden" name="MeetTimeBlockId" id="seMeetTimeBlockId" />
+  <input type="hidden" name="SportEventId" id="seSportEventId" />
+  <input type="hidden" name="FacilityId" id="seFacilityId" />
+  <input type="hidden" id="seFlightStep"/>
+  <div id="pnSegmentSelect" style="position: relative;">
+     <div style="margin-top:20px;">What type of block segment are you adding?</div>
+     <div id="pnSegmentType">
+          <select name="seSegmentType" id="seSegmentType" size=7 class="data">
+             <option value="W">General Warm-up</option>
+             <option value="M">Meeting</option>
+          </select>
+          <div class="seProgress" style="margin-top: 30px;width:100%;">
+             <button type="button" class="ssButton" OnClick="SegmentNext()" id="btSegmentNext1" style="float:right;margin-right:30px;" disabled>Next</button>
+          </div>
+     </div>
+  </div>
+  <div id="pnSegmentInput" style="display:none;">
+      <div style="margin-top:20px;margin-bottom:20px;" id="txBasicSegmentHeading">Please provide details of this segment below:</div>
+      <div class="dgEntryRow"><label for="SegmentLabel" id="txSegmentLabel">Segment Label:</label><input type="text" class="databind data" name="SegmentLabel" data-fieldname="SegmentLabel" style="width:75%;" maxlength="100" size=100 /></div>
+      <div class="dgEntryRow"><label for="Duration">Duration:</label><input type="text" class="databind data" name="Duration" data-fieldname="Duration" style="width:40px;" maxlength="3" />&nbsp;<span class="GrayText">(minutes)</span></div>
+      <div class="dgEntryRow"><label for="">Start Time:</label><div id="seStartTimes"></div></div>
+      <div class="dgEntryRow" style="display:none;"><label for="">Spans all events:</label><select class="data" id="cbSpansAllEvents"><option value="0" selected>No</option><option value="1">Yes</option></select></div>
+      <div class="seProgress" style="margin-top: 30px;width:100%;">
+          <button type="button" class="ssButton" OnClick="SegmentBack()" id="btSegmentBack2" style="margin-left:30px;">Back</button>
+      </div>
+      <div id="pnSegmentInputMsgs"></div>
+  </div>
+  <div id="pnSegmentLevels" style="display:none;">
+      <div style="margin-top:10px;margin-bottom:10px;display:flex;justify-content:space-between;">
+          <div>Please select one (or more) of the levels below:</div>
+          <div id="rbSegmentLevelsGenderView" class="data"></div>
+      </div>
+      <div id="pnSegmentLevelsList"></div>
+      <div id="pnSegmentLevelsProperties" style="margin-top:10px;">
+          <div id="pnSegmentLevelsInfo" style="display:none;"></div>
+          <div id="" style="border:1px solid black;padding:5px;border-radius:5px;margin-top:10px;">
+              <div style="margin-top:-15px;background-color:#FFFFFF;width:64px;">&nbsp;Options&nbsp;</div>
+              <div class="dgEntryRow" id="seMaxAFinalsRow">
+                  <label for="seMaxAFinals" style="width:300px;">Max Athletes in Finals:</label>
+                  <input type="number" class="data segmentInputs" name="seMaxAFinals" id="seMaxAFinals" style="width:33px;" maxlength="2" value="10"/>
+              </div>
+              <div class="dgEntryRow">
+                  <label for="seMaxAPS" style="width:300px;">Max Athletes per flight:</label>
+                  <input type="number" class="data segmentInputs" name="seMaxAPS" id="seMaxAPS" style="width:33px;" maxlength="2" value="12"/>
+              </div>
+              <div class="dgEntryRow">
+                  <label for="seSegmentPer" style="width:300px;">Create flight per each level:</label>
+                  <input type="checkbox" class="data segmentInputs" name="seSegmentPer" id="seSegmentPer" value="1" checked/>
+              </div>
+          </div>
+      </div>
+      <div class="" id="pnSegmentWarnings" style="padding:3px;"></div>
+      <div class="seProgress" style="margin-top:10pxy;height:20px;width:100%;">
+          <button type="button" class="ssButton" OnClick="SegmentBack()" id="btSegmentBack3" style="margin-left:30px;">Back</button>
+          <button type="button" class="ssButton" OnClick="SegmentNext()" id="btSegmentNext" style="float:right;">Next</button>
+      </div>
+  </div>
+  <div id="pnSegmentTFTeams" class="pnSegmentTF" style="display:none;">
+      <div style="display:flex;justify-content:space-between;">
+         <div id="seTFTeamsHeader" style="font-weight:bold;">Team Finals Teams Preparations</div>
+         <div><span>Team Finals for Gender:</span><select id="cbTFGenderCd" class="data" style="margin-left:5px;"><option value="F" selected>Female</option><option value="M">Male</option><option value="X">Mixed</option></select></div>
+      </div>
+      <div id="seTFTeamsHeader2" style="margin-top:5px;margin-bottom:9px;line-height:160%;">
+         Team Finals requires teams to be configured which can be one per club or multiple clubs can be combined into a single team...
+         <span>sort clubs by:&nbsp;<select style="font-size:11px;" class="data" id="cbTFClubSort"><option selected value="N">Name</option><option value="P">Prov/State</option></select></span>
+      </div>
+      <div id="seTFTeamsContent" style="width:auto;display:flex;box-sizing: border-box;justify-content:space-between;height:90%;">
+         <div id="seTFClubsContent" style="height:100%;width:50%;margin-right:3%;">
+            <div style="display:flex;justify-content:space-between;align-items:center;height:28px;">
+                <div class="seTFInstruction">Click club to create a team OR add to selected team</div>
+            </div>
+            <div id="seTFClubs" style="margin-top:2px;overflow-y:auto;height:calc(100% - 40px);border:1px solid #6F6F6F;padding:4px;border-radius:5px;"></div>
+         </div>
+         <div id="seTFTeamsList" style="height:100%;width:47%;">
+            <div style="display:flex;justify-content:space-between;align-items:center;height:28px;">
+               <div class="label" id="txTeamFinalsTeamsHeader">Teams</div>
+               <div>
+                   <button type="button" class="ssButton" OnClick="RefreshTeamFinalsTeams()">Refresh</button>
+                   <button type="button" class="ssButton" OnClick="CreateEmptyTeam()">Create Team</button>
+               </div>
+            </div>
+            <div id="seTFTeams" style="margin-top:2px;height:calc(100% - 40px);overflow-y:auto;border:1px solid #6F6F6F;padding:4px;border-radius:5px;"></div>
+            <div id="seTFTeamClubs" style="display:none;"></div>
+         </div>
+      </div>
+      <div class="seProgress" style="margin-top:7px;width:100%;">
+          <button type="button" class="ssButton" OnClick="SegmentBack()" id="btTFTSegmentBack" style="margin-left:30px;">Back</button>
+          <button type="button" class="ssButton" OnClick="SegmentNext()" id="btTFTSegmentNext" style="float:right;">Next</button>
+      </div>
+  </div>
+  <div id="pnSegmentTFAthletes" class="pnSegmentTF" style="display:none;height:95%;">
+      <div style="margin-top:0px;margin-bottom:0px;display:flex;justify-content:space-between;">
+          <div>Please select athletes for team finals by selecting athletes from one <span class="tfGroupLabel"></span> at a time:</div>
+          <div id="rbSegmentTFGenderView" class="data"></div>
+      </div>
+      <div id="pnSegmentTFFilters" style="margin-top:17px;border:1px solid black;border-radius:5px;padding:5px;">
+           <div style="margin-left:4px;margin-top:-15px;background-color:#FFFFFF;width:64px;">&nbsp;Filters&nbsp;</div>
+           <div class="dgEntryRow" style="display:flex;justify-content:space-between;">
+             <div>
+                 <span id="txTFTeam" class="label">Select Team:&nbsp;</span>
+                 <span id="pnTFTeam"><select class="data cbFTFilter" id="cbTFTeams" style="width:250px;"></select></span>
+             </div>
+             <div>
+                 <span class="label" style="margin-left:10px;">Top Ranked/Level:&nbsp;</span>
+                 <span><select id="cbTFTopRanked" class="data cbFTFilter"><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option><option value="0" selected>ALL</option></select></span>
+             </div>
+           </div>
+      </div>
+      <div id="pnSegmentTFAthletesListing" style="margin-top:10px;padding:5px;">
+         <div>Athletes listing</div>
+      </div>
+      <div id="pnSegmentTFSelection" style="width:97%;position:absolute;bottom:104px;">
+          <div id="" style="border:1px solid black;padding:5px;border-radius:5px;margin-top:10px;">
+              <div style="margin-top:-15px;background-color:#FFFFFF;width:465px;">
+                  <span>Team/Athlete Selections</span>
+                  <span style="margin-left:10px;font-style:italic;">(drag team boxes left/right to adjust sequence)</span>
+              </div>
+              <div class="dgEntryRow" id="pnTFSelection" style="display:flex;min-height:25px;">
+                 &nbsp;
+              </div>
+          </div>
+      </div>
+      <div id="pnSegmentTFProperties" style="width:97%;position:absolute;bottom:53px;">
+          <div style="border:1px solid black;padding:5px;border-radius:5px;margin-top:10px;">
+              <div style="margin-top:-15px;background-color:#FFFFFF;width:64px;">&nbsp;Options&nbsp;</div>
+              <div class="dgEntryRow">
+                  <label for="seTFMaxAPS" style="width:176px;">Max Athletes per flight:</label>
+                  <input type="number" class="data segmentInputs" name="seTFMaxAPS" id="seTFMaxAPS" style="width:33px;" maxlength="2" value="12"/>
+              </div>
+          </div>
+      </div>
+      <div id="pnTFSegmentWarnings" style="padding:3px;height:15px;position:absolute;bottom:30px;">&nbsp;</div>
+      <div class="seProgress" style="width:97%;position:absolute;bottom:3px;display:flex;justify-content:space-between;">
+          <button type="button" class="ssButton" OnClick="SegmentBack()" id="btTFSegmentBack" style="margin-left:30px;">Back</button>
+          <button type="button" class="ssButton" OnClick="SegmentNext()" id="btTFSegmentNext" >Next</button>
+      </div>
+  </div>
+  <div id="pnSegmentTFFlights" class="pnSegmentTF" style="display:none;">
+      <input type="hidden" id="seTFFlightCount" />
+      <div id="seTFFlightsHeader" style="padding:4px;margin-bottom:5px;">
+          Creating flight(s) for the selected teams and athletes. Athlete sequencing has been performed to ensure one athlete per club per round and are listed in increasing level sequence. Once the flights are created, you can always open the fligh and adjust the execution order and round setting.
+      </div>
+      <div id="seTFFlights"></div>
+      <div id="seTFAthletes"></div>
+      <div class="seProgress" style="margin-top:7px;width:100%;">
+          <button type="button" class="ssButton" OnClick="SegmentBack()" id="btSegmentBackTF4" style="margin-left:30px;">Back</button>
+      </div>
+  </div>
+  <div id="pnSegmentAthletes" style="display:none;">
+      <input type="hidden" id="seLoadingLevelIds" />
+      <input type="hidden" id="seLoadedLevelIds" />
+      <input type="hidden" id="seFlightCount" />
+      <div style="margin-top:8px;margin-bottom:8px;">Please identify athletes competing in this flight(s)...</div>
+      <div id="seAthleteHeader"><div id="seAthleteCount"></div><div id="seAthleteINCount"></div></div>
+      <div class="seFlightControl" style="margin-bottom:5px;width:100%;">
+          <div id="pnFlightsBreakByAgeRange" style="float:right;margin-top:3px;margin-left:5px;" class="data">Break by Age Range:&nbsp;<select id="cbBreakByAgeRange" class="data" OnChange="BreakFlightsByAgeRange()"><option value="1" selected>Yes</option><option value="0">No</option></select></div>
+          <button type="button" class="ssButton" OnClick="RandomizeAthletes()" id="btRandomizeAthletes" style="float:right;display:none;">Randomize</button>&nbsp;
+          <button type="button" class="ssButton" OnClick="DeSelectAllAthletes()" id="btheSelectAllAthletes" style="float:right;">DeSelect All</button> &nbsp;
+          <button type="button" class="ssButton" OnClick="SelectAllAthletes()" id="btSelectAllAthletes" style="float:right;">Select All</button>
+          <button type="button" class="ssButton" OnClick="PrepareEmptyFlights()" id="btPrepareEmptyFlight" style="float:right;">Prepare Empty Flight</button>
+          <div style="clear:both;"></div>
+      </div>
+      <div id="seFlights"></div>
+      <div id="seAthletesList">
+          loading athletes...
+      </div>
+      <div class="seProgress" style="margin-top:7px;width:100%;">
+          <button type="button" class="ssButton" OnClick="SegmentBack()" id="btSegmentBack4" style="margin-left:30px;">Back</button>
+      </div>
+  </div>
+  <div class="dgEntryRow" style="margin-top:3px;position:absolute;bottom:0;" id="dgTNTSegmentsEditorMsg"></div>
+</div>
+
+<div id="dgTNTFlight" style="display:none;">
+    <div style="display:flex;align-content:stretch;flex-wrap:nowrap;" id="seSession">
+        <!-- Left-hand Scores/Results/General navigator removed (Sep 2026).
+             With Results retired it was a two-item menu in a column of its
+             own, and it cost the scoring matrix horizontal room. Scores is
+             now the panel only content; General opens as a dialog from the
+             "Flight Settings..." button (OpenFlightGeneralDialog in
+             Scripts/MeetTNT.js), which passes appendTo:#seContent so the
+             form stays inside the BindProxy scope (MeetTNT.js:3095).
+             #seContent itself must stay for that reason. -->
+        <div id="seContent">
+            <div name="fmSessionEditor" id="fmSessionEditor" class="data" style="display:none;">
+              <input type="hidden" name="EventId" id="seEventId" class="databind" data-fieldname="EventId" />
+              <input type="hidden" name="SegmentId" id="seFlightSegmentId" />
+              <div class="dgEntryRow" style="display:none;"><label for="SessionNo">Flight #:</label><input type="text" class="databind data" name="SessionNo" data-fieldname="SessionNo" style="width:20px;" maxlength="2" /></div>
+              <div class="dgEntryRow"><label for="EventName">Flight Title:</label><span class="databind data" id="txFlightName" data-fieldname="EventName"></span><input type="text" class="databind data" name="EventName" id="EventName" data-fieldname="EventName" style="width:300px;" maxlength="100" /></div>
+              <div class="dgEntryRow"><label for="Starthate">Date:</label><span class="databind data" id="EventStartDatetime" name="EventStartDatetime" data-fieldname="EventStartDatetime" data-date-format="mdy" style="width:80px;"></span></div>
+              <div class="dgEntryRow"><label for="StartTimeText">Start Time:</label><span class="databind data" name="StartTimeText" data-fieldname="StartTimeText"></span></div>
+              <div class="dgEntryRow"><label for="EndTimeText">End Time:</label><span class="databind data" name="EndTimeText" data-fieldname="EndTimeText"></span>
+                                      <span>Duration:&nbsp;<span class="data databind" data-fieldname="DurationMin"></span> min</span>
+              </div>
+              <div class="dgEntryRow"><label for="SessionTypeName">Flight Type:</label><span class="databind data" id="SessionTypeName" name="SessionTypeName" data-fieldname="SessionTypeName"></span></div>
+              <div class="dgEntryRow"><label for="cbTeamCompetitionFeed" id="cbTeamCompetitionFeedLabel">Team Competition:</label><select class="data databind" data-fieldname="TeamCompetitionFeed" id="cbTeamCompetitionFeed"><option value="false">No</option><option value="true">Yes</option></select>&nbsp;&nbsp;<span class="GrayText">(scores in this flight will feed the Team Competition results)</span></div>
+              <div class="dgEntryRow" style="display:none;"><label for="MissingJudgeCount" id="txMissingJudgeCount">Missing Judges:</label><input type="text" class="databind data" id="txMissingJudgeCount" name="MissingJudgeCount" data-fieldname="MissingJudgeCount" style="width:15px;"  maxlength="1" />&nbsp;&nbsp;<span class="GrayText">(set this to the number of EScore judges missing for this flight and that score will be averaged)</span></div>
+              <div class="dgEntryRow"><label for="AthleteCount"># Athletes:</label><span class="databind data" id="AthleteCount" name="AthleteCount" data-fieldname="AthleteCount"></span></div>
+              <div class="dgEntryRow" style="margin-top:10px;" id="txSessionEditorMsg"></div>
+            </div>
+            <div id="seScores" style="display:none;">
+               <div style="display:flex;justify-content:space-between;width:100%;">
+                  <div style="padding-bottom:0px;">
+                     <span class="title" id="FlightTitle" style="margin-right:14px;">Scores</span>
+                     <span class="label">(Status:&nbsp;<span id="FlightStatus"></span><button type="button" id="btVerifyFlight" class="ssButton" style="margin-left:8px !important;">Mark as Verified</button>)</span>
+                  </div>
+                  <div class="label" id="ScoringRuleName"></div>
+               </div>
+               <div style="display:flex;font-size:11px;">
+                  <div>Start-End:&nbsp;</div>
+                  <div class="databind" data-fieldname="StartTimeText"></div>
+                  <div>-</div>
+                  <div class="databind" data-fieldname="EndTimeText"></div>
+               </div>
+
+               <div id="seScoresContent">
+                  <div id="seScoresContentControl" style="display:flex;justify-content:space-between;">
+                      <div>
+                        <!-- HIDDEN BY DEFAULT, deliberately. DoFlightAnalysis()
+                             is the only thing that ever shows this, and it runs
+                             at the very END of the load chain — two round trips
+                             after the panel opens. Visible-by-default meant the
+                             button sat on screen for ~4 seconds on every flight
+                             and then vanished, which reads as a glitch.
+
+                             Starting hidden also makes the state correct by
+                             construction rather than by cleanup: a caller that
+                             never runs the analysis (a non-master judge) can no
+                             longer leave the button showing simply by omitting
+                             the .hide(), which is exactly how it leaked into the
+                             judge app in the first place. -->
+                        <button type="button" id="btCleanFlight" class="ssButton" style="display:none;" OnClick="TNTCleanFlight()" title="Analyzes the flight to remove duplicate Pending scores, and add possible extra scores that maybe needed. ">Clean Flight</button>
+                        &nbsp;
+                      </div>
+                      <div style="display:flex;">
+                          <div id="seScoresContentControlB">
+                             <button type="button" id="btClearScores"  data-id="0" class="ssButton" OnClick="ClearFlightScores()" style="float:right;" title="Shows a row of buttons to clear scores for individual routines">Clear Scores...</button>
+                             <button type="button" id="btDeleteScores" data-id="0" class="ssButton" OnClick="DeleteFlightScores()" style="float:right;" title="Shows a row of buttons to delete scores for individual routines">Delete Scores...</button>
+                             <button type="button" id="btScratchAthletes" data-id="0" class="ssButton" OnClick="ScratchFlightAthletes()" style="float:right;" title="Remove athlete(s) from this flight">Scratch Athletes...</button>
+                             <button type="button" id="btPrepareJudgesSheets" data-id="0" class="ssButton" OnClick="TNTPrepareJudgesSheets()" style="float:right;" title="Prepare judges sheets for this session">Judges Sheets...</button>
+                             <button type="button" id="btPrepareAthletesForFinals" data-id="0" class="ssButton" OnClick="PrepareAthletesForFinals()" style="float:right;" title="Review current rankings and assign athletes to this finals flight">Prepare Athletes</button>
+                          </div>
+                          <button id="btRefreshFlightScores" type="button" class="ssButton" OnClick="TNTRefreshFlightScores()" title="Retrieve fresh scores from server">Refresh Scores</button>
+                      </div>
+                  </div>
+                  <div id="seScoresContentMatrix" tabindex=0>loading...</div>
+                   <div id="seScoresContentFooter">
+                       <div style="display:block;justify-content:space-between;" id="pnStdFlightButtons">
+                          <button type="button" style="float:right;" class="ssButton" style="display:none;" id="btRemoveAthleteFromFlight" OnClick="RemoveAthletesFromFlight()" data-id=0>Remove Athletes</button>
+                          <button type="button" style="float:right;" class="ssButton" id="btAddAthleteToFlight" OnClick="AddAthleteToFlight()" data-id=0 title="Add an athlete to this flight">Add Athlete</button>
+                          <button type="button" style="float:right;"  class="ssButton" id="btChangeAthleteExecutionOrder" OnClick="ChangeAthleteExecutionOrder()" data-id=0 title="Change the execution order on an athlete">Move Athlete</button>
+                          <div style="clear:both;"></div>
+                       </div>
+                       <div style="display:block;justify-content:space-between;" id="pnFinalsFlightButtons">
+                          <button type="button" style="float:right;" class="ssButton" style="display:none;" id="btRemoveSlotFromFlight" OnClick="RemoveSlotFromFinalsFlight()" data-id=0 title="Remove a slot from this finals flight">Remove Slot</button>
+                          <button type="button" style="float:right;" class="ssButton" id="btAddSlotToFlight" OnClick="AddSlotToFinalsFlight()" data-id=0 title="Add an empty slot to this finals flight">Add Slot</button>
+                          <div style="clear:both;"></div>
+                       </div>
+                   </div>
+                  <div id="seScoresContentMsgs">&nbsp;</div>
+                  <div id="seFinalsOrigContent" style="display:none;"></div>
+               </div>
+               <div id="" style="display:none;"></div>
+            </div>
+            <div id="seAthletes" style="display:none;">
+               <div class="title" style="padding-bottom:4px;">Athletes</div>
+               <div id="seAthletesContent"></div>
+               <div id="seAthleteInfo" style="display:none;">&nbsp; </div>
+            </div>
+            <!-- #seResults pane removed with its nav item — see the note on
+                 the navigator above. Retired, not deferred: do not restore. -->
+        </div>
+    </div>
+    <div id="seScoreContent" style="display:none;">
+        <!-- Athlete header — kept identical to Team/toSessionsTNT.html.
+             The flight sequence sits in its own column (.seHdrSeq) and both
+             text rows share the column beside it (.seHdrMain), so the
+             club/level line aligns under the athlete name by layout rather
+             than the old `margin-left:37px` indent, which was calibrated to
+             one font's digit width and also broke at two digits. -->
+        <div id="seScoreHeader">
+          <div class="seHdrGrid">
+            <div class="seHdrSeq" id="scoreFlightSeq"></div>
+            <div class="seHdrMain">
+              <div class="seScoreRow" style="justify-content:space-between;">
+                <div class="seScoreRow">
+                   <div class="seHdrName" id="scoreAthleteNames"><span class="databind" data-fieldname="AthleteNames"></span></div>
+                   <div class="databind" data-fieldname="PlayerNo"></div>
+                </div>
+                <div id="seScoreHeaderClose" style="margin-right:12px;">&nbsp;</div>
+              </div>
+              <div class="seScoreRow" style="justify-content:space-between;">
+                <div>
+                   <div class="seScoreInfo databind seHdrMeta" data-fieldname="TeamOrgName"></div>
+                   <div class="seScoreInfo databind seHdrMeta" data-fieldname="ActiveEventLevelName">Level</div>
+                </div>
+                <div>
+                   <div>Scoring Rule:&nbsp;<span id="activeScoringRule">not set</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="seScoreBlocks">
+            <div id="seScoreBlock1" class="seScoreBlock" data-EntryNo="1">
+            </div>
+            <div id="seScoreBlock2" class="seScoreBlock" data-EntryNo="2" style="display:none;">
+            </div>
+            <div id="seScoreBlock3" class="seScoreBlock" data-EntryNo="3" style="display:none;">
+            </div>
+            <div id="seScoreBlock4" class="seScoreBlock" data-EntryNo="4" style="display:none;">
+            </div>
+            <div id="seScoreBlock5" class="seScoreBlock" data-EntryNo="5" style="display:none;">
+            </div>
+            <div id="seScoreBlock6" class="seScoreBlock" data-EntryNo="6" style="display:none;">
+            </div>
+            <div id="seScoresSelector">
+            </div>
+        </div>
+        <div id="seScoreVideo" style="display:none;"></div>
+        <div class="seStatusPopup" style="display:none;">
+            <div style="font-weight:bold;font-size:larger;padding:5px;line-height:125%;">
+               Score states are Pending, OnDeck, Scratch and Complete.
+            </div>
+            <div style="padding:5px;">
+               OnDeck is only utilized with multi-judge scoring. Once a score is complete, only the master judge has write access to the score. The judge has the option to place a Complete score back OnDeck to allow the other judges write access again.
+            </div>
+            <div style="margin-top:12px;display:flex;justify-content:space-between;">
+               <div style="display:flex;align-items:center;">
+                  <div style="margin-right:5px;">Change Score State to:</div>
+                  <button style="margin-right:5px;" type="button" class="ssButton" id="btPutBackPending">Pending</button>
+                  <button style="margin-right:5px;" type="button" class="ssButton" id="btPutBackOnDeck">OnDeck</button>
+               </div>
+               <button type="button" class="ssButton" id="btPutBackOnDeckClose" OnClick="ClosePutBackOnDeck()">Close</button>
+            </div>
+        </div>
+        <div id="seSkillsEntryOuter" style="width:0px;display:none;">
+            <input type="hidden" id="seSkillsProperty" />
+            <input type="hidden" id="seSkillsJudgeNo" />
+            <input type="hidden" id="seSkillsScoreElement" />
+
+            <div id="seSkillsHeader">Skills Entry for Judge #<span id="seJudgeNo"></span></div>
+            <div id="seSkillsOps">
+               <div style="display:flex;justify-content:space-between;width:100%;">
+                   <div id="seSEC"></div>
+                   <div><span style="font-size:smaller;padding-top:3px;">(click skill heading # to adjust out of score)</span>&nbsp;<button class="ssButton" type="button" id="btClearOutOfScore">Clear</button></div>
+               </div>
+            </div>
+            <div id="seSkillsEntry">
+                <div class="seSkill" data-id="0" style="width:80px;">
+                   <div class="seSkillHeader">&nbsp;</div>
+                   <div><b>Score:</b></div>
+                   <div><b>Horz Disp:</b></div>
+                   <div>&nbsp;</div>
+                </div>
+                <div class="seSkill" data-id="1">
+                   <div class="seSkillHeader">#1</div>
+                   <div><input type="text" size="2" name="Score" class="seSkillScore" /></div>
+                   <div><input type="text" size="2" name="HorzDisp" class="seHorzDisp" /></div>
+                   <div>&nbsp;</div>
+                </div>
+                <div class="seSkill" data-id="2">
+                   <div class="seSkillHeader">#2</div>
+                   <div><input type="text" size="2" name="Score" class="seSkillScore" /></div>
+                   <div><input type="text" size="2" name="HorzDisp" class="seHorzDisp" /></div>
+                   <div>&nbsp;</div>
+                </div>
+            </div>
+            <div id="seSkillsFooter"><div id="seSkillsMsgs">&nbsp;</div><div><button type="button" class="ssButton" id="btSkillsClose">Done</button></div></div>
+        </div>
+        <div id="seScoreControl">
+           <button class="ssButton" type="button" id="btScoreBack" OnClick="ScoreBack()">Back</button>&nbsp;
+           <button class="ssButton" type="button" id="btScorePrev" OnClick="PrevTNTScore()">&lt;&nbsp;Prev</button>&nbsp;
+           <button class="ssButton" type="button" id="btScoreNext" OnClick="NextTNTScore()" style="float:right;">Next&nbsp;&gt;</button>
+        </div>
+    </div>
+</div>
+
+<div id="dgTnTAthleteSchedule" style="display:none;">
+
+</div>
+
+<div id="dgRecalcSchedule" style="display:none;">
+    <button type="button" class="ssButton" OnClick="RecalcTnTSchedule('S')">Simple ReCalc</button>
+    <div style="margin-left:20px;margin-top:5px;color:#5F5F5F;">(Simple Recalc does not re-evaluate the athlete execution times to calculate a new flight duration. It just ensures flights and blocks are sequentially timed properly.)</div>
+    <br>
+    <button type="button" class="ssButton" OnClick="RecalcTnTSchedule('D')">Deep ReCalc</button>
+    <div style="margin-left:20px;margin-top:5px;color:#5F5F5F;">(Deep Recalc will re-calculate all flight durations by re-evaluating the scoring rule settings and athlete execution times. Then the flights are sequentially adjusted to be contiguous or break by block appropriately.)</div>
+    <br>
+</div>
+
+<div id="dgJudgeLogin" style="display:none;">
+    <div style="margin-left:12px;margin-top:5px;color:#5F5F5F;">This allows you to switch over this page to a judge profile to support score entry. This page will no longer have your full privileges to operate when you do this.</div>
+    <div style="margin-top:12px;margin-left:auto;margin-right:auto;width:150px;"><span>Judge PIN #:&nbsp;<input type="text" id="edPIN" size="4" maxlength=4 class="data" autocomplete="off "/></span></div>
+    <div id="dgJudgeLoginMsgs"></div>
+</div>
+
+<div id="dgOpenQIRA" style="display:none;">
+    <div style="margin-left:12px;margin-top:5px;color:#5F5F5F;line-height:150%;">
+        QIRA is provided by EuroTramp (https://www.eurotramp.com/en/) to tie into the Trampoline to directly record and capture the horizontal displacement (HD) and Time-of-Flight (TOF) for the active gymnast. LiveMeet integrates with this win32 program to support pulling the HD and TOF for the OnDeck (active) score.
+        <br><br>The following web page performs the necessary monitoring for LiveMeet to feed the current active score and athlete name to the running QIRA program.
+        <br><br><font color="blue">Note:</font> You will need to configure the Network settings in QIRA to have it push the HD and TOF to LiveMeet. The Client Settings should be Label=SportzSoft and URL=https://www.sportzsoft.com/ssRest/teamRest.dll. The Server Settings should be enabled on port 8080. The laptop you use for this requires an active internet connection.
+        <br><br>
+        <div style="text-align:center;width:100%;">
+            <button type="button" class="ssButton" OnClick="OpenLiveMeetQIRA()">Open LiveMeet / QIRA Interface...</button>
+        </div>
+    </div>
+    <div id="dgOpenQIRAMsgs"></div>
+</div>
+
+<div id="dgMeetValidate" style="display:none;">
+    <div style="padding:5px;color:#5F5F5F;">Use this dialog to Validate, Recalc and Clear Overall Rankings within this meet. <b>Validate</b> re-calculates scores, compares and advises when the new calculated value appears to be incorrect (you are given the options to reset the final score OR to see the list of invalid scores). <b>Recalc</b> of rankings is also available here and is useful if scoring rules have changed. <b>Clear Overall Rankings</b> is only needed when Semi-Finals exist and the Finals are a "Fresh Start" finals.</div>
+    <div style="margin-top:6px;padding:5px;">
+        <div id="fsEventsRadio"></div>
+        <div id="fsMeetRankingsLevels" style="margin-top:5px;overflow-y:auto;max-height:240px;"></div>
+        <div id="fsValidationViewer" style="margin-top:5px;overflow-y:auto;max-height:240px;display:none;">
+            <div style="display:flex;justify-content: space-between;">
+                <div class="title">Invalid Scores / Rankings</div>
+                <button type="button" class="ssButton" OnClick="CloseValidationViewer()">Close</button>
+            </div>
+            <div id="pnInvalidScores" style="margin-top:5px;"></div>
+        </div>
+    </div>
+    <div id="dgMeetValidateMsgsRow" style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;">
+       <div id="dgMeetValidateMsgs"></div>
+       <div id="mvInvalidButtons" style="display:none;">
+          <button type="button" class="ssButton" style="margin-left:0px;" id="btRecalcCorrectInvalidScores" OnClick="RecalcCorrectInvalidScores()" data-LevelId="0">Recalc/Correct Invalid Scores</button>
+          <button type="button" class="ssButton" style="margin-left:0px;" id="btViewInvalidScores" OnClick="ViewInvalidScores()">View Invalid Scores</button>
+       </div>
+    </div>

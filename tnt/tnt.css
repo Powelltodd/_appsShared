@@ -1,0 +1,1452 @@
+/* tnt.css — Bootstrap 5 skin for the TNT flight scoring panel.
+ *
+ * SHARED — apps/_shared/tnt/. Loaded by EVERY Bootstrap 5 app that shows
+ * the flight/scoring panel:
+ *     apps/LiveMeet        the meet organizer's portal
+ *     apps/ttJudgeScoring  a judge at a panel
+ * It sits beside the two fragments it skins, TNTDialogs.html and
+ * TNTTemplates.html, which both apps fetch from this same folder. Edit
+ * here and both apps get it — that is the entire point of the folder.
+ *
+ * Was apps/LiveMeet/assets/css/lm-tnt.css until the judge app needed the
+ * same panel. There is no LiveMeet copy any more; do not reintroduce one.
+ *
+ * Restyles the SAME markup Scripts/ssMeetAccess.js (tntScoreControl)
+ * emits — no forked JS. That is possible because the widget's class
+ * vocabulary is a private `se*` namespace nothing else in the suite
+ * styles, so the old TeamWeb pages keep css/TnTStyles.css and the new apps
+ * load this instead. Two skins, one renderer.
+ *
+ * THE SCOPE CLASS IS .lm-tnt IN EVERY APP. Read it as a token, not as a
+ * reference to LiveMeet — it long predates this file being shared. Kept on
+ * the move deliberately: the name appears in ~220 selectors here plus
+ * apps/LiveMeet/assets/js/shared/ssdialog.js and both index.html files,
+ * and changing it buys nothing but churn. Wrap the scoring container in
+ * that class.
+ *
+ * TYPE TOKENS: the --lm-fs-* ramp comes from apps/LiveMeet/assets/css/
+ * lm.css. Apps that do NOT load lm.css — ttJudgeScoring, and
+ * dev/ScorePanelPreview.html — fall back to the px literal written into
+ * every var() below. That fallback is load-bearing, not decoration; do
+ * not strip it.
+ *
+ * ---------------------------------------------------------------
+ * DENSITY IS THE HARD CONSTRAINT, NOT THE LOOK.
+ * ---------------------------------------------------------------
+ * Execution judges cap at 6, but a fully-loaded panel still stacks ~15
+ * score entry boxes (6 execution + average + TOF + HD1 + HD2 + Synch +
+ * Difficulty + Penalty + Bonus + Mobility). The machines in the gym are
+ * commonly Chromebooks: 768px tall, minus browser chrome ≈ 640px of
+ * usable page.
+ *
+ * Measured in dev/ScorePanelPreview.html at that worst case:
+ *     legacy skin (TnTStyles.css)  513px
+ *     this skin                    528px
+ *     budget                       640px
+ *
+ * So this file deliberately does NOT use .form-control sizing — stock
+ * Bootstrap controls are ~38px tall and 15 of those blows the budget on
+ * inputs alone.
+ *
+ * WHICH KNOB ACTUALLY MOVES THE NEEDLE: --se-font and --se-label-py, NOT
+ * --se-row-h. Below about 25px the row height stops binding because the
+ * label cell's own content box (font + vertical padding) becomes the
+ * floor. Measured, 15-box panel:
+ *     --se-row-h 20/21/22/23/24px -> 630px  (identical; not the lever)
+ *     --se-font 13px, label-py 2px -> 630px
+ *     --se-font 13px, label-py 1px -> 592px
+ *     --se-font 12px, label-py 1px -> 582px
+ * Retune with those two, and re-measure in the preview harness at
+ * 1366x768 before committing.
+ */
+
+.lm-tnt {
+  /* Density knobs. --se-font and --se-label-py are the ones that move
+     total panel height; --se-row-h only binds above ~25px. See the
+     measurements in the header comment before changing any of them. */
+  --se-row-h:      23px;   /* matches the legacy .seSkillRow height   */
+  --se-input-h:    22px;   /* NOT Bootstrap's 38px — see note above   */
+  --se-label-py:    2px;   /* real density lever (2px->1px saves ~38px) */
+  /* Sourced from the app-wide ramp in lm.css so changing type globally
+     moves the TNT screens too. The px fallbacks are NOT decoration:
+     dev/ScorePanelPreview.html loads this file WITHOUT lm.css, so the
+     --lm-fs-* tokens do not exist there and the harness would fall back to
+     an unstyled default without them. */
+  --se-font:    var(--lm-fs-md, 13px);   /* real density lever */
+  --se-font-sm: var(--lm-fs-xs, 11px);
+  --se-entry-w:    58px;   /* mirrors td.seEntry in TnTStyles.css     */
+  --se-input-w:    51px;
+  --se-block-w:   200px;   /* one round's score block — see the row note below */
+  --se-block-gap:  15px;   /* 200+15 = the 212 ssMeetAccess.js assumes */
+
+  /* Score block backgrounds. The grey/white pair is FUNCTIONAL, not
+     decorative: inactive rounds sit recessed in grey and the one being
+     scored comes forward in white. The first port made every block
+     --se-surface (white) and gave .seActiveScore no background at all,
+     leaving the active round distinguishable only by its border. Grey kept
+     at the legacy #d7d7d7 — that contrast is what makes the active block
+     obvious at a glance across a row of five. */
+  --se-block-bg:        #d7d7d7;
+  --se-block-bg-active: var(--se-surface);
+
+  /* Colour tokens, mapped onto Bootstrap 5's palette. */
+  --se-border:     var(--bs-border-color, #dee2e6);
+  --se-muted:      var(--bs-secondary-color, #6c757d);
+  --se-active:     var(--bs-success, #198754);
+  --se-invalid:    var(--bs-danger, #dc3545);
+  --se-posted:     var(--bs-primary, #0d6efd);
+  --se-surface:    var(--bs-body-bg, #fff);
+
+  font-size: var(--se-font);
+}
+
+
+#seScoresContentMatrix {
+  min-height: 380px;
+  background-color:#FCFCFC;
+}
+
+/* ---------- score block shell ---------- */
+
+.lm-tnt .seScoreEntry {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  box-sizing: border-box;
+}
+.lm-tnt .seScoreEntry tr { vertical-align: middle; }
+
+/* ---------- the score block ROW ----------
+   HORIZONTAL IS THE BINDING BUDGET, NOT VERTICAL.
+
+   A flight shows one block per round side by side — ScoreBlockCount =
+   PrelimRounds + SemiFinalRounds + FinalRounds, capped at MaxScoreBlocks
+   = 6 (ssMeetAccess.js:4899). Typically 4-5. They live in a nowrap flex
+   row, so the panel needs
+       blocks x (block width + gutter) + the dialog's nav column
+   of horizontal room. ssMeetAccess.js:5135 computes its own minimum as
+   ScoreBlockCount * 212.
+
+   On a 1366px Chromebook in LANDSCAPE (the actual deployment target —
+   laptops and Chromebooks, not tablets in portrait):
+       4 blocks -> 4*215 + 110 =  970px  fits
+       5 blocks -> 5*215 + 110 = 1185px  fits
+       6 blocks -> 6*215 + 110 = 1400px  DOES NOT FIT — scrolls
+   Keep --se-block-w + --se-block-gap at or under the legacy 200+15 or
+   the 5-block case stops fitting. This is why the panel is landscape-only
+   and why portrait tablet was never a target. */
+.lm-tnt #seScoreBlocks {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: nowrap;
+  flex-flow: row;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;   /* 6-block case scrolls rather than crushing blocks */
+}
+
+/* The block is a Bootstrap-ish card rather than a bare bordered table.
+   Width/margin/min-height mirror .seScoreBlock in TnTStyles.css — without
+   them the blocks collapse, since LiveMeet does NOT load that stylesheet. */
+.lm-tnt .seScoreBlock {
+  position: relative;
+  width: var(--se-block-w);
+  min-width: var(--se-block-w);
+  margin-right: var(--se-block-gap);
+  min-height: 285px;
+  overflow-y: auto;
+  background: var(--se-block-bg);
+  border: 1px solid var(--se-border);
+  border-radius: var(--bs-border-radius, .375rem);
+  padding: 8px;
+  box-sizing: border-box;
+}
+/* Compound selector so winning does not depend on rule order — both classes
+   sit on the same element (PresentScore does
+   .closest('.seScoreBlock').addClass('seActiveScore')). */
+.lm-tnt .seScoreBlock.seActiveScore { background: var(--se-block-bg-active); }
+.lm-tnt .seActiveScore {
+  border-color: var(--se-active) !important;
+  box-shadow: 0 0 0 .2rem rgba(25, 135, 84, .18) !important;
+}
+
+/* ---------- block header ---------- */
+
+.lm-tnt .seScoreEntryHeader {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--se-border);
+  padding-bottom: 3px;
+  margin-bottom: 3px;
+  background: transparent;
+}
+.lm-tnt .seHL { font-size: var(--lm-fs-3xl, 17px); width: 7%;  text-align: left;   color: var(--se-posted); }
+.lm-tnt .seHC { width: 81%; text-align: center; min-height: 18px; font-weight: 600; }
+.lm-tnt .seHR { width: 7%;  margin-right: 3px; }
+.lm-tnt .seMakeScoreActive {
+  border: 0;
+  border-radius: var(--bs-border-radius-sm, .25rem);
+  background: transparent;
+  margin-right: 3px;
+  cursor: pointer;
+}
+
+/* ---------- label / entry rows ---------- */
+
+.lm-tnt .seLabel {
+  padding: var(--se-label-py) 6px;
+  text-align: left;
+  height: var(--se-row-h);
+  color: var(--bs-body-color, #212529);
+}
+.lm-tnt td.seEntry {
+  width: var(--se-entry-w);
+  padding: 0;
+  text-align: right;
+  height: var(--se-row-h);
+}
+.lm-tnt .seExecutionLabelRow {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-content: center;
+}
+.lm-tnt .seExecutionLabelText { padding-top: 2px; }
+.lm-tnt .seActiveEJudge { font-weight: 700; color: var(--se-active); }
+
+/* Compact score input. Underline-only, like the legacy skin, but with
+   Bootstrap's focus ring. Height is pinned so 14 rows stay predictable. */
+.lm-tnt .seScore {
+  width: var(--se-input-w);
+  height: var(--se-input-h);
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 1px solid var(--bs-border-color, #adb5bd);
+  border-radius: 0;
+  background: transparent;
+  text-align: right;
+  font-size: var(--se-font);
+  box-sizing: border-box;
+  transition: border-color .12s ease-in-out, box-shadow .12s ease-in-out;
+}
+.lm-tnt .seScore:focus {
+  outline: 0;
+  border-bottom-color: var(--se-posted);
+  box-shadow: 0 1px 0 0 var(--se-posted);
+}
+.lm-tnt .seScore:disabled {
+  color: var(--se-muted);
+  background: transparent;
+  border-bottom-style: dotted;
+}
+.lm-tnt .seIsNoScore { text-decoration: line-through; color: var(--se-muted); }
+.lm-tnt .seHiddenEScore { color: var(--se-muted); text-align: right; }
+.lm-tnt .seCheckBox { width: auto; height: auto; margin-right: 4px; }
+
+/* ---------- final score row ---------- */
+
+.lm-tnt .seScoreEntryFinal td {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  font-weight: 700;
+  border-top: 1px solid var(--se-border);
+}
+.lm-tnt .seScoreFinalRow { display: flex; justify-content: space-between; align-items: baseline; }
+.lm-tnt .seFinalScoreLabel { font-size: var(--lm-fs-lg, 14px); }
+.lm-tnt .seScoreStatus { font-size: var(--lm-fs-2xs, 10px); font-weight: 400; text-align: right; color: var(--se-muted); }
+.lm-tnt .tntFinalScore { font-size: var(--lm-fs-2xl, 16px); font-variant-numeric: tabular-nums; }
+.lm-tnt .tntInvalidScore { color: var(--se-invalid); }
+.lm-tnt .tntPostedScore  { color: var(--se-posted); }
+
+/* ---------- control / post row ---------- */
+
+.lm-tnt .seScoreEntryPost td { padding-top: 4px !important; padding-bottom: 2px !important; }
+.lm-tnt .seScoreControl { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+.lm-tnt .seScoreEntryMsgs { height: 17px; font-size: var(--se-font-sm); color: var(--se-muted); }
+
+/* Legacy .ssButton mapped onto a Bootstrap small button. Kept as a class
+   rule rather than rewriting the JS to emit .btn.btn-sm — same reason as
+   everything else here: one renderer, two skins. */
+/* .ssButton IS a Bootstrap button here — not an approximation of one.
+   Every value below is Bootstrap 5.3's own, driven through the same
+   --bs-btn-* custom properties .btn uses, so these render identically to a
+   real `.btn.btn-sm.btn-primary` and pick up theme changes automatically.
+
+   Why not just add the btn classes in the markup: .ssButton is emitted at
+   ~50 sites across MeetTNT.js, ssMeetAccess.js and the HTML fragments, all
+   shared with the old TeamWeb pages — which do NOT load Bootstrap, so the
+   classes would be dead weight there and the churn would be large. One
+   rule here does it for LiveMeet only. */
+.lm-tnt .ssButton {
+  --bs-btn-padding-x: .5rem;          /* .btn-sm */
+  --bs-btn-padding-y: .25rem;
+  /* App scale, not Bootstrap's .875rem/14px — see --lm-btn-fs-sm in
+     lm.css. The px fallback keeps dev/ScorePanelPreview.html working,
+     which loads this file without lm.css. */
+  --bs-btn-font-size: var(--lm-btn-fs-sm, 13px);
+  --bs-btn-border-radius: var(--bs-border-radius-sm, .25rem);
+  --bs-btn-color: #fff;               /* .btn-primary */
+  --bs-btn-bg: var(--bs-primary, #0d6efd);
+  --bs-btn-border-color: var(--bs-primary, #0d6efd);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #0b5ed7;
+  --bs-btn-hover-border-color: #0a58ca;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #0a58ca;
+  --bs-btn-active-border-color: #0a53be;
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--bs-primary, #0d6efd);
+  --bs-btn-disabled-border-color: var(--bs-primary, #0d6efd);
+  --bs-btn-focus-shadow-rgb: 49,132,253;
+
+  display: inline-block;
+  font-family: inherit;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  padding: var(--bs-btn-padding-y) var(--bs-btn-padding-x);
+  font-size: var(--bs-btn-font-size);
+  border: 1px solid var(--bs-btn-border-color);
+  border-radius: var(--bs-btn-border-radius);
+  color: var(--bs-btn-color);
+  background-color: var(--bs-btn-bg);
+  transition: color .15s ease-in-out, background-color .15s ease-in-out,
+              border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+  /* TabStylesS.css gives .ssButton `margin: 2px !important`, and a lot of
+     the TNT markup relies on it for spacing — the toolbar rows
+     (#seScoresContentControlB, Move/Add Athlete) put buttons back to back
+     with no separator of their own, so dropping the margin left them all
+     touching. */
+  margin: 2px;
+}
+.lm-tnt .ssButton:hover:not(:disabled) {
+  color: var(--bs-btn-hover-color);
+  background-color: var(--bs-btn-hover-bg);
+  border-color: var(--bs-btn-hover-border-color);
+}
+.lm-tnt .ssButton:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 .25rem rgba(var(--bs-btn-focus-shadow-rgb), .5);
+}
+.lm-tnt .ssButton:active:not(:disabled) {
+  color: var(--bs-btn-active-color);
+  background-color: var(--bs-btn-active-bg);
+  border-color: var(--bs-btn-active-border-color);
+}
+.lm-tnt .ssButton:disabled {
+  opacity: .65;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Close/dismiss actions read as secondary — Bootstrap's outline-secondary.
+   Save is the primary action on that row; three identical blue buttons gave
+   Close the same weight as Save, which it should not have. */
+.lm-tnt .ssButton.ssButtonClose {
+  --bs-btn-color: var(--bs-secondary-color, #6c757d);
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: var(--bs-border-color, #6c757d);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--bs-secondary, #6c757d);
+  --bs-btn-hover-border-color: var(--bs-secondary, #6c757d);
+  --bs-btn-active-bg: #565e64;
+  --bs-btn-active-border-color: #51585e;
+  --bs-btn-focus-shadow-rgb: 130,138,145;
+}
+
+/* The by-Value / by-Skill entry-mode toggles (.btToggleScoreModes, emitted
+   by ScoreLabel() in ssMeetAccess.js). These sit INSIDE a score label —
+   "Difficulty:  [byV]" — so they are not peer actions to Save/Close and
+   must not read like one: at full .ssButton size a solid primary button
+   next to a 12px label dwarfs the label and pushes the label row taller
+   than the score rows beside it. Recast as a compact outline pill:
+   secondary weight, label-sized text, short enough to sit on the label's
+   own line. The caption is always three characters ("byV"/"byS"), so
+   there is nothing to wrap or truncate. */
+.lm-tnt .ssButton.btToggleScoreModes {
+  --bs-btn-padding-x: .4rem;
+  --bs-btn-padding-y: 0;
+  --bs-btn-font-size: var(--se-font-sm);
+  --bs-btn-color: var(--bs-secondary-color, #6c757d);
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: var(--bs-border-color, #adb5bd);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--bs-secondary, #6c757d);
+  --bs-btn-hover-border-color: var(--bs-secondary, #6c757d);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #565e64;
+  --bs-btn-active-border-color: #51585e;
+  --bs-btn-focus-shadow-rgb: 130,138,145;
+
+  line-height: 1.35;
+  font-weight: 500;
+  white-space: nowrap;
+  margin: 0 0 0 4px;
+}
+
+/* SVG icons are KEPT AS-IS — same artwork in both skins, so there is no
+   Font Awesome vs Bootstrap Icons split to maintain. Only the box around
+   them is restyled. The <object> children still need pointer-events:none
+   (set inline by the JS) for the anchor to receive the click. */
+/* The anchor and the <object> inside it BOTH carry .SSicon, so anything
+   set here hits both. The anchor must not be a flex container: as
+   inline-flex with padding, the nested <object> became a flex item in a
+   14px content box and shrank to fit — and because the SVGs have
+   different intrinsic sizes they shrank by different amounts, so a row of
+   icons visibly stepped down in size left to right. inline-block plus an
+   explicit size on the child fixes it: no flex context, nothing to shrink.
+   flex:0 0 auto keeps the anchors themselves from shrinking inside
+   .seScoreControl, which IS a flex row. */
+.lm-tnt .SSicon {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+.lm-tnt a.SSicon {
+  flex: 0 0 auto;
+  line-height: 0;
+  padding: 0;
+  border-radius: var(--bs-border-radius-sm, .25rem);
+}
+.lm-tnt a.SSicon > object,
+.lm-tnt a.SSicon > img {
+  width: 18px;
+  height: 18px;
+  display: block;
+  flex: 0 0 auto;
+  pointer-events: none;   /* the anchor takes the click, not the SVG doc */
+}
+.lm-tnt a.SSicon:hover { background: var(--bs-tertiary-bg, #f8f9fa); }
+.lm-tnt .SSiconDisabled { opacity: .4; pointer-events: none; }
+
+/* ---------- empty / pending blocks ---------- */
+
+.lm-tnt .seEmptyScoreCell { padding: 3px; text-align: center; color: var(--se-muted); }
+.lm-tnt .seEmptyScore { color: var(--se-muted); }
+.lm-tnt .sePendingScore { background: var(--bs-warning-bg-subtle, #fff3cd); }
+
+/* ---------- skills panel messages ---------- */
+
+.lm-tnt .seSkillsMsg   { font-size: var(--se-font-sm); color: var(--se-posted); }
+.lm-tnt .seSkillsNote  { font-size: smaller; color: var(--se-posted); }
+.lm-tnt .seSkillsError { font-size: smaller; color: var(--se-invalid); }
+
+/* ---------- skills entry grid ---------- */
+
+.lm-tnt .seSkill {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  width: 50px;
+  justify-content: space-between;
+  margin-right: 2px;
+  box-sizing: border-box;
+}
+.lm-tnt .seSkill.seSkillLabels { width: 80px; }
+.lm-tnt .seSkillRow { height: var(--se-row-h); vertical-align: middle; line-height: var(--se-row-h); }
+.lm-tnt .seNoScoreRow { font-size: var(--se-font-sm); padding-top: 0; }
+.lm-tnt .seSkillHeader { text-align: center; background: var(--bs-tertiary-bg, #f8f9fa); font-weight: 600; }
+.lm-tnt .seSkillsMatrixRow { min-height: 20px; }
+
+/* ---------- video panel ---------- */
+
+.lm-tnt .seVideoNoViewing { font-style: italic; color: var(--se-muted); }
+
+/* ---------- narrow screens ----------
+   Phones get taller touch targets, which is safe because a phone scrolls;
+   the Chromebook budget above only has to hold on wide-but-short screens. */
+@media (max-width: 575.98px) {
+  .lm-tnt {
+    --se-row-h:   30px;
+    --se-input-h: 28px;
+    --se-font:    14px;
+  }
+}
+
+/* ==================================================================
+   THE SCHEDULE GRID
+   ==================================================================
+   Ported from css/TnTStyles.css for the markup MeetTNT.js builds in
+   #pnBlockContent (timeBlocksLoadedCB -> prepareBlockEvents ->
+   prepareBlockSegments).
+
+   Structure, so the width fractions below make sense:
+
+     .blockRow                     one time block, a nowrap flex row
+       .blockNo                    the orange "BLOCK n" gutter (7%)
+       .blockContent               the rest (93%), wraps
+         .tntEventHeaderN          column header, 1/N width
+         .tntEventNW               event column, 1/N width
+           .tntSegment             one flight/warmup/award
+             .tntSegmentTime       35%, the time range
+             .tntSegmentLabel      65%, the flight title
+
+   N is the number of event columns for that block (1-8), so the
+   fractions are hard-coded per N rather than computed — that is how the
+   original works and the JS picks the class name by count.
+
+   COLOURS ARE SEMANTIC — DO NOT PRETTIFY:
+     .tntSegmentW  green   warm-up
+     .tntSegmentM  yellow  marshalling
+     .tntSegmentT  pale    team/other
+     .tntSegmentFinals red bar down the left edge
+     .tntEvent9-12         alternating column stripes
+   Meet directors read the schedule by colour at a glance. The exact
+   values are carried over unchanged from TnTStyles.css. What IS
+   modernised here is the chrome: hard #000 grid lines become Bootstrap's
+   border token, and the block gutter picks up the LiveMeet accent. */
+
+/* ------------------------------------------------------------------
+   GRID LINES — TWEAKABLE IN DEVTOOLS
+
+   The first port mapped the legacy #000000/#0F0F0F rules onto Bootstrap's
+   --bs-border-color (#dee2e6). That was too far the other way: the grid
+   lost its structure, with no visible separation between the column header
+   and the content, nor between flights. Restored as dark grey — softer
+   than the legacy black, but still reading as a grid.
+
+   Declared on .lm-tnt so they show up in the Styles pane when you inspect
+   any part of the schedule, and can be edited inline.
+
+     --sch-line-color         every rule in the grid
+     --sch-line-width         column separators / block edges
+     --sch-head-line-width    heavier rule under the column headers
+     --sch-flight-line-width  hairline between flights in a column
+   ------------------------------------------------------------------ */
+.lm-tnt {
+  --sch-line-color:        #4f4f4f;
+  --sch-line-width:        1px;
+  --sch-head-line-width:   2px;
+  --sch-flight-line-width: 1px;
+
+  /* Kept as a composed shorthand because a lot of rules below just want
+     "the standard grid rule". Change the parts above, not this. */
+  --sch-line:    var(--sch-line-color);
+  --sch-gutter:  #f89938;   /* LiveMeet accent, replacing TnTStyles' #FF9900 */
+}
+
+/* ---------- block frame ---------- */
+.lm-tnt .blockRow {
+  display: flex;
+  flex-wrap: nowrap;
+  flex-flow: row;
+  border-bottom: var(--sch-line-width) solid var(--sch-line-color);
+  width: 100%;
+  box-sizing: border-box;
+}
+.lm-tnt .blockSection { border-top: var(--sch-line-width) solid var(--sch-line-color); }
+/* The heavier rule that divides the column headers from the schedule
+   content — the one piece of the legacy grid that was doing real work. */
+.lm-tnt .blockHeader {
+  padding: 8px 0;
+  text-align: center;
+  border-right: var(--sch-line-width) solid var(--sch-line-color);
+  border-bottom: var(--sch-head-line-width) solid var(--sch-line-color);
+  font-weight: 600;
+}
+.lm-tnt .blockNo {
+  position: relative;
+  background: var(--sch-gutter);
+  color: #000;
+  width: 7%;
+  text-align: center;
+  padding: 8px 0;
+  font-weight: 700;
+  border-right: var(--sch-line-width) solid var(--sch-line-color);
+}
+.lm-tnt .blockContent {
+  /* --se-font (13px), NOT --se-font-sm. The legacy grid ran at 11px, which
+     is too small to scan at arm's length on a laptop. The schedule is not
+     the density-constrained surface — that is the score panel — so it can
+     afford the extra 2px. Don't swap this back to the small token to
+     "match" the score panel. */
+  font-size: var(--se-font);
+  font-weight: 400;
+  line-height: 1.25;
+  box-sizing: border-box;
+  width: 93%;
+  display: flex;
+  align-content: flex-start;
+  flex-wrap: wrap;
+}
+
+/* ---------- event columns ----------
+   Shared properties once, then just the width per column count. */
+.lm-tnt .tntEventHeader1, .lm-tnt .tntEventHeader2, .lm-tnt .tntEventHeader3, .lm-tnt .tntEventHeader4,
+.lm-tnt .tntEventHeader5, .lm-tnt .tntEventHeader6, .lm-tnt .tntEventHeader7, .lm-tnt .tntEventHeader8 {
+  text-align: center; box-sizing: border-box;
+}
+.lm-tnt .tntEventHeader1 { width: 99.9%; }
+.lm-tnt .tntEventHeader2 { width: 50%; }
+.lm-tnt .tntEventHeader3 { width: 33.333%; }
+.lm-tnt .tntEventHeader4 { width: 25%; }
+.lm-tnt .tntEventHeader5 { width: 20%; }
+.lm-tnt .tntEventHeader6 { width: 16.666%; }
+.lm-tnt .tntEventHeader7 { width: 14.286%; }
+.lm-tnt .tntEventHeader8 { width: 12.5%; }
+
+/* Enumerated, NOT [class$="W"]. The rendered attribute is
+   class="tntEventBox tntEvent4W tntEvent10" — the width class sits in the
+   MIDDLE, so the attribute ends in the stripe class and an $= selector
+   silently matches nothing. */
+.lm-tnt .tntEvent1W, .lm-tnt .tntEvent2W, .lm-tnt .tntEvent3W, .lm-tnt .tntEvent4W,
+.lm-tnt .tntEvent5W, .lm-tnt .tntEvent6W, .lm-tnt .tntEvent7W, .lm-tnt .tntEvent8W {
+  text-align: center;
+  min-height: 76px;
+  border-right: var(--sch-line-width) solid var(--sch-line-color);
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+}
+.lm-tnt .tntEvent1W { width: 100%; }
+.lm-tnt .tntEvent2W { width: 50%; }
+.lm-tnt .tntEvent3W { width: 33.333%; }
+.lm-tnt .tntEvent4W { width: 25%; }
+.lm-tnt .tntEvent5W { width: 20%; }
+.lm-tnt .tntEvent6W { width: 16.666%; }
+.lm-tnt .tntEvent7W { width: 14.286%; }
+.lm-tnt .tntEvent8W { width: 12.5%; }
+
+/* Alternating column stripes (9-12 are shade slots, not event ids). */
+.lm-tnt .tntEvent9  { background: #dedede; color: #000; }
+.lm-tnt .tntEvent10 { background: #b2b2b2; color: #000; }
+.lm-tnt .tntEvent11 { background: #ffffff; color: #000; }
+.lm-tnt .tntEvent12 { background: #e8e8e8; color: #000; }
+
+.lm-tnt .tntFlightActive {
+  position: absolute; bottom: 0; left: 0;
+  height: 3px; background: #069312;
+}
+
+/* ---------- segments (the individual flights) ---------- */
+.lm-tnt .tntSegment {
+  padding: 0;
+  width: 100%;
+  display: flex;
+  position: relative;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+/* The line between flights is NOT drawn on .tntSegment. .blockRow is reused
+   as a per-flight wrapper INSIDE each event column —
+   .blockContent > .tntEventBox > .blockRow > .tntSegment — so every segment
+   is the only child of its own row, and the separator is that row's
+   bottom border. (A :last-child rule on .tntSegment therefore matches every
+   segment, not the final one: it removed all the lines.)
+
+   Scoped here so flights can be weighted independently of the column and
+   block edges, which share --sch-line-width. */
+.lm-tnt .tntEventBox .blockRow {
+  border-bottom-width: var(--sch-flight-line-width);
+}
+.lm-tnt .tntSegment:hover     { background: #0000e0 !important; color: #fff !important; }
+.lm-tnt .tntSegmentRecent     { background: #d4faff !important; color: #000 !important; }
+.lm-tnt .tntSegmentW          { background: #23e72c; color: #000; }
+.lm-tnt .tntSegmentM          { background: #ffda47; color: #000; }
+.lm-tnt .tntSegmentT          { background: #e9fcb6; color: #000; }
+.lm-tnt .tntSegmentHighlight  { background: #045fae; color: #000; }
+.lm-tnt .tntSegmentFinals {
+  background: #c00; width: 6px; height: 100%;
+  position: absolute; left: 0;
+}
+.lm-tnt .tntSegmentTime {
+  padding: 4px 2px;
+  width: 35%; max-width: 108px; min-width: 82px;
+  border-right: var(--sch-line-width) solid var(--sch-line-color);
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.lm-tnt .tntSegmentLabel {
+  padding: 4px 2px;
+  width: 65%;
+  text-align: center;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* ---------- in-segment controls ---------- */
+.lm-tnt .biDelete {
+  position: absolute; bottom: 0; right: 0;
+  height: 16px; margin-right: 3px; margin-bottom: 3px;
+}
+.lm-tnt .btAddSegment {
+  position: absolute; bottom: 0; left: 0;
+  margin-left: 40% !important; margin-bottom: 0 !important;
+}
+.lm-tnt .btEditSegment {
+  margin: 0 !important;
+  position: absolute; top: 0; right: 0;
+}
+
+/* ---------- flight status text ---------- */
+.lm-tnt .seStatusActive    { color: #069312; font-weight: 600; }
+.lm-tnt .seStatusCompleted { color: #6b6bff; font-weight: 600; }
+.lm-tnt .seStatusVerified  { color: #0000cc; font-weight: 600; }
+.lm-tnt .ClubAthleteInitials { color: #2929ff; font-weight: 700; }
+
+/* jQuery UI renders the day-selector button set; these only remove the
+   inter-button gap so the segments read as one control. From styles.css —
+   .ssButtonSet itself has no rule anywhere, it is a JS hook only. */
+.lm-tnt .ssRadioLabel, .lm-tnt .ssRadio { margin-right: 0 !important; }
+
+/* ---------- schedule headers ----------
+   MeetLoadedForTNTCB() (MeetTNT.js:303) always emits both bars:
+     #pnTNTSessionHeader   the meet name
+     #pnTNTDayHeader       the day being viewed
+
+   TnTStyles.css renders them as a heavy #11437C banner over a near-black
+   #0F0F0F bar. In LiveMeet the meet name is ALREADY in the topbar
+   breadcrumb, so the session header is redundant chrome costing vertical
+   room the grid wants — hidden on screen (Todd's call). The day bar stays
+   and becomes the real section header.
+
+   HIDDEN, NOT REMOVED. Both divs are emitted by MeetLoadedForTNTCB()
+   (MeetTNT.js:328) and RefreshSchedule() writes the new day into
+   #pnTNTDayHeader by id on every day change, so neither may be dropped
+   from the DOM — only styled away.
+
+   The session header comes BACK for print: a printed schedule has no
+   breadcrumb and must identify its own meet. */
+.lm-tnt #pnTNTSessionHeader { display: none; }
+.lm-tnt #pnTNTDayHeader {
+  font-weight: 700;
+  font-size: var(--lm-fs-xl, 15px);
+  padding: 6px 10px;
+  margin: 0 0 6px;
+  border: 0;
+  border-radius: var(--bs-border-radius, .375rem);
+  background: var(--bs-secondary-bg, #e9ecef);
+  color: var(--bs-emphasis-color, #000);
+  box-sizing: border-box;
+  width: 100%;
+  text-align: left;
+}
+@media print {
+  /* display:block is REQUIRED, not cosmetic — the screen rule above hides
+     this outright, so without restoring display here the meet name would
+     vanish from printed schedules too. That is the one thing it exists
+     for: on paper there is no breadcrumb naming the meet. */
+  .lm-tnt #pnTNTSessionHeader {
+    display: block;
+    font-size: var(--lm-fs-4xl, 18px);
+    font-weight: 700;
+    color: #000;
+    text-align: center;
+    padding: 5px 0;
+  }
+  .lm-tnt #pnTNTDayHeader {
+    font-size: var(--lm-fs-lg, 14px);
+    text-align: center;
+    background: transparent;
+    border-bottom: 1px solid #000;
+    border-radius: 0;
+  }
+}
+
+/* ==================================================================
+   THE FLIGHT DIALOG — SCORE MATRIX
+   ==================================================================
+   Ported from css/TnTStyles.css (+ TournamentS.css for the side nav) for
+   the markup ssMeetAccess.js/MeetTNT.js build inside #dgTNTFlight.
+
+   NOTE this is a DIFFERENT view from the score-entry panel styled higher
+   up in this file. The `se*` panel is one athlete's scores, opened from
+   here; this `sm*` matrix is the flight's athlete LIST — one row per
+   athlete, with their score chips along the row. Both live in the same
+   dialog and are easy to confuse.
+
+   Row structure:
+     .ScoreMatrixHeader          column headings, same flex shape as a row
+     .smAthleteScore             one athlete row (flex, nowrap)
+       .smRotationSeq   3%
+       .smAthleteNo     5%
+       .smAthleteName  18%
+       .smAthleteClub  15%
+       .smAthleteLevel 16%
+       .smScore{N}          a score chip, N = TOTAL score count (1-6)
+       .smScore{N}H         the matching header cell
+
+   smScoreN's width is chosen by count — MeetTNT.js:3390 and :4523 both do
+   'smScore'+iScoresCount — so the six widths are hard-coded per N, exactly
+   like the tntEventNW columns in the schedule. Enumerated, not pattern
+   matched, for the same reason: the class sits mid-attribute.
+
+   STATE COLOURS ARE SEMANTIC — carried over unchanged:
+     .sm99 / .smFinal / .scoreComplete   green, score is final/complete
+     .smNoScore                          grey, no score recorded
+     .smRemoved                          red, athlete removed
+
+   .sm1 and .smFinalH are emitted but have NO rule anywhere in the old app
+   either — JS hooks, like .tntEventBox. Nothing to port. */
+
+/* ---------- dialog side nav ---------- */
+.lm-tnt #mnNavigator { width: 140px; }
+.lm-tnt #seContent   { clear: both; width: 100%; padding: 5px; box-sizing: border-box; }
+.lm-tnt .mnNavItem {
+  padding: 6px 8px;
+  border-radius: var(--bs-border-radius-sm, .25rem);
+  cursor: pointer;
+}
+.lm-tnt .mnNavItem:hover {
+  color: var(--sch-gutter);
+  background: var(--bs-tertiary-bg, #f6f6f6);
+}
+.lm-tnt .mnActive {
+  font-weight: 700;
+  color: var(--sch-gutter);
+  background: var(--bs-tertiary-bg, #f6f6f6);
+}
+
+/* ---------- matrix rows ---------- */
+.lm-tnt .ScoreMatrixHeader,
+.lm-tnt .smAthleteScore {
+  width: 100%;
+  display: flex;
+  flex-flow: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+.lm-tnt .ScoreMatrixHeader {
+  font-weight: 600;
+  border-bottom: 1px solid var(--se-border);
+  padding-bottom: 2px;
+  margin-bottom: 2px;
+}
+.lm-tnt .smAthleteScore { padding: 0; }
+.lm-tnt .smAthleteScore:hover { background: #045fae !important; color: #fff !important; }
+.lm-tnt .smEven { background: var(--bs-tertiary-bg, #efefef); }
+/* The percentage column widths below are the real layout control; --sm-cell-max
+   is only a clamp. TnTStyles.css pins it at 140px, which was invisible in the
+   old ~780px dialog (18% of 780 = 140, so the cap only just bound) but pins
+   every column at 140px in the full-width panel — 18% of 1700px is 306px.
+   Kept as a tunable knob rather than deleted so a cap can be reinstated. */
+.lm-tnt {
+  --sm-cell-min: 50px;
+  --sm-cell-max: none;
+  /* ROW DENSITY, and the only two knobs that set it. The matrix is the one
+     screen a judge or scorer reads across a gym, and every athlete costs
+     (2 x --sm-cell-my) + (2 x --sm-chip-py) + 2px of chip border in
+     height — so at the old 4px/2px a 40-athlete flight spent ~240px of
+     viewport on whitespace alone and pushed rows off a laptop screen.
+
+     Both are declared here on .lm-tnt rather than inline on the rules
+     below so the whole matrix can be retuned from the DevTools element
+     picker: select the panel, change these two, settle on a look, copy the
+     values back. Chip padding stays asymmetric horizontally (4px right,
+     2px left) — the numbers are right-aligned and want the breathing room
+     on the side they sit against. */
+  --sm-cell-my: 2px;
+  --sm-chip-py: 1px;
+}
+.lm-tnt .smCell {
+  padding: 0;
+  box-sizing: border-box;
+  margin-top: var(--sm-cell-my);
+  margin-bottom: var(--sm-cell-my);
+  min-width: var(--sm-cell-min);
+  max-width: var(--sm-cell-max);
+}
+.lm-tnt .smVertLine {
+  width: 2px;
+  background: var(--bs-border-color, #6f6f6f);
+  margin-left: 4px;
+  margin-right: 4px;
+}
+.lm-tnt .smRemoved { color: var(--se-invalid); font-weight: 700; }
+
+/* ---------- column widths ---------- */
+.lm-tnt .smRotationSeq      { text-align: center; width: 3%;  }
+.lm-tnt .smAthleteNo        { text-align: center; width: 5%;  }
+.lm-tnt .smAthleteName      { text-align: left;   width: 18%; }
+.lm-tnt .smAthleteClub      { text-align: left;   width: 15%; }
+.lm-tnt .smTeamName         { text-align: left;   width: 15%; }
+.lm-tnt .smAthleteLevel     { text-align: left;   width: 16%; }
+.lm-tnt .smTeamFinalsRound  { text-align: center; width: 10%; }
+
+/* ---------- score chips ---------- */
+.lm-tnt .smScore1, .lm-tnt .smScore2, .lm-tnt .smScore3,
+.lm-tnt .smScore4, .lm-tnt .smScore5, .lm-tnt .smScore6 {
+  box-sizing: border-box;
+  text-align: right;
+  background: #f0f8ff;
+  border: 1px solid #045fae;
+  border-radius: var(--bs-border-radius-sm, .25rem);
+  margin-left: 3px;
+  margin-right: 3px;
+  padding: var(--sm-chip-py) 4px var(--sm-chip-py) 2px;
+  cursor: pointer;
+  color: #000 !important;
+  font-variant-numeric: tabular-nums;
+}
+.lm-tnt .smScore1 { width: 34.5%;  }
+.lm-tnt .smScore2 { width: 15%;    }
+.lm-tnt .smScore3 { width: 11.5%;  }
+.lm-tnt .smScore4 { width: 8.5%;   }
+.lm-tnt .smScore5 { width: 7.0%;   }
+.lm-tnt .smScore6 { width: 5.833%; }
+
+/* Header cells mirror the chip widths but draw no box. */
+.lm-tnt .smScore1H, .lm-tnt .smScore2H, .lm-tnt .smScore3H,
+.lm-tnt .smScore4H, .lm-tnt .smScore5H, .lm-tnt .smScore6H {
+  text-align: right;
+  /* Same padding and a transparent border, so a header cell measures
+     exactly as wide as the chips beneath it and the columns stay aligned.
+     Must track --sm-chip-py with the chips or the header drifts. */
+  padding: var(--sm-chip-py) 4px var(--sm-chip-py) 2px;
+  border: 1px solid transparent;
+  margin-left: 3px;
+  margin-right: 3px;
+}
+.lm-tnt .smScore1H { width: 34.5%;  }
+.lm-tnt .smScore2H { width: 15%;    }
+.lm-tnt .smScore3H { width: 11.5%;  }
+.lm-tnt .smScore4H { width: 8.5%;   }
+.lm-tnt .smScore5H { width: 7.0%;   }
+.lm-tnt .smScore6H { width: 5.833%; }
+
+/* ==================================================================
+   UNNAMESPACED CLASSES
+   ==================================================================
+   These carry no se-, sm-, tnt- or block- prefix, so the original port —
+   which swept those namespaces, and later ids — missed them entirely.
+   (Do NOT write those four as glob patterns: a star followed by a slash
+   closes this comment early. It did, and it silently ate the
+   .markedForDeletion rule below — the parser took the rest of this prose
+   as the start of a selector and dropped the whole ruleset.)
+   They are emitted by the same MeetTNT.js / ssMeetAccess.js code as
+   everything else here and are reachable in the flight panel today.
+
+   Grep both scripts for a bare class name before assuming a rule is
+   dead; the prefix conventions are not complete. */
+
+/* Scratched athlete. Applied per-CELL, not per-row: MeetTNT.js:3341 and
+   :3518 add it to .smAthleteName specifically, so the strike-through
+   lands on the name and the tint spans only that cell. */
+.lm-tnt .markedForDeletion {
+  text-decoration: line-through;
+  background-color: var(--sm-deleted-bg, #ffe0e0);
+}
+.lm-tnt { --sm-deleted-bg: #ffe0e0; }
+
+/* Sibling of .ScoreMatrixHeader — the athlete row wrapper. Same flex
+   shape, with vertical padding the header does not carry. */
+.lm-tnt .ScoreMatrix {
+  width: 100%;
+  display: flex;
+  flex-flow: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  padding: 5px 0;
+  box-sizing: border-box;
+}
+/* THE rule that actually sets score-chip height in the matrix.
+
+   .smScoreEntry is on every chip PresentAthlete emits, alongside
+   .smScore1..6 — and being !important it beats the padding those set, so
+   tuning --sm-chip-py on .smScore1..6 ALONE changes nothing and the row
+   height does not move. That is exactly what happened when the density was
+   first reduced: the judge app appeared to tighten (its chips were being
+   forced by a DevTools override) while LiveMeet stayed at 31.5px rows.
+
+   So this reads the same token. One knob, and the two rules cannot
+   disagree. The !important is kept because it is what makes this the
+   winner over the .smScore1..6 shorthand. */
+.lm-tnt .smScoreEntry {
+  padding-top: var(--sm-chip-py) !important;
+  padding-bottom: var(--sm-chip-py) !important;
+}
+.lm-tnt .seCell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 1%;
+}
+.lm-tnt .diScratchAthlete { height: 15px; }
+.lm-tnt .vPlay            { margin-left: 3px; }
+.lm-tnt .seScoreContentLarge { font-size: var(--lm-fs-md, 13px) !important; }
+.lm-tnt .exOutOf {
+  margin-left: 3px;
+  color: var(--se-posted);
+  padding-top: 3px;
+}
+
+/* Knocked-out scores in an E-score set — struck through, not hidden, so
+   judges can see what was dropped. High/low differ only in weight. */
+.lm-tnt .seKOHigh { text-decoration: line-through; color: #2f2f2f; }
+.lm-tnt .seKOLow  { text-decoration: line-through; color: #6f6f6f; }
+.lm-tnt .tntEScoreAvg {
+  border: 0 !important;
+  background-color: var(--se-muted) !important;
+  color: #fff !important;
+}
+
+/* ---------- skill entry validation states ----------
+   SEMANTIC, not decorative — these are how a judge sees that an entered
+   skill is accepted, questionable or rejected. Kept at the legacy hues
+   rather than remapped to Bootstrap's palette: they are learned colours
+   and the two apps must agree on them. */
+.lm-tnt .seSkillGood {
+  color: #fff;
+  border: 1px solid #17b541;
+  border-radius: var(--bs-border-radius-sm, .25rem);
+  background-color: #17b541;
+}
+.lm-tnt .seSkillError {
+  border: 1px solid #cc0000 !important;
+  background-color: #ffbdbd !important;
+  border-radius: var(--bs-border-radius-sm, .25rem);
+}
+.lm-tnt .seSkillInvalid {
+  border: 1px solid #cc0000 !important;
+  background-color: #ffebeb !important;
+  border-radius: var(--bs-border-radius-sm, .25rem);
+}
+.lm-tnt .seSkillNoScore {
+  border: 1px solid #ffa825 !important;
+  background-color: #ffedd1 !important;
+  width: 80% !important;
+  margin-left: 5% !important;
+  border-radius: var(--bs-border-radius-sm, .25rem);
+}
+/* The legacy rule sets `background-color:##EFEFEF` — a double hash, which
+   is invalid, so no background has ever applied in either app. Ported as
+   it actually behaves, not as it reads. See the note to Todd. */
+.lm-tnt .seSkillEntry {
+  border: 0;
+  border-right: 3px solid #17b541;
+}
+.lm-tnt .seSkillMatrix {
+  width: 50%;
+  margin-left: 21%;
+  border: 0;
+  background-color: transparent;
+  text-align: center;
+  box-sizing: border-box;
+}
+/* TnTStyles.css declares .seSkillTotal TWICE; this is the cascaded result
+   (the second block's !important margins beat the first's margin-left). */
+.lm-tnt .seSkillTotal {
+  width: 90% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-top: 3px;
+  border: 1px solid var(--se-border);
+  border-radius: var(--bs-border-radius-sm, .25rem);
+  background-color: transparent;
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--se-font);
+}
+.lm-tnt .seExecutionLabel {
+  display: flex;
+  justify-content: flex-start;
+}
+.lm-tnt .seNoScore {
+  margin-left: 33%;
+  margin-top: 4px;
+  height: 16px !important;
+  width: 16px !important;
+}
+
+/* Chip states */
+.lm-tnt .sm99, .lm-tnt .smFinal, .lm-tnt .scoreComplete {
+  background: #eefde8 !important;
+  border-color: #45b710 !important;
+}
+.lm-tnt .smNoScore {
+  background: var(--bs-secondary-bg, #efefef) !important;
+  border-color: var(--bs-border-color, #a3a3a3) !important;
+}
+.lm-tnt .smCellVideo { font-size: var(--lm-fs-xl, 15px); }
+.lm-tnt .smScoreWithVideo { display: flex; align-items: center; justify-content: space-between; }
+.lm-tnt #seVideoClose { cursor: pointer; }
+
+/* ---------- score-entry leftovers used inside this dialog ---------- */
+.lm-tnt .seScoreRow  { display: flex; }
+.lm-tnt .seScoreInfo { margin-top: 3px; font-weight: 700; font-size: var(--lm-fs-sm, 12px); }
+.lm-tnt .seSkillScore {
+  width: 50%;
+  margin-left: 24.8%;
+  border: 0;
+  border-bottom: 1px solid var(--bs-border-color, #7f7f7f);
+  background: transparent;
+  text-align: center;
+  height: 20px;
+  box-sizing: border-box;
+  font-size: var(--se-font);
+}
+
+/* The skills strip is driven entirely by the keyboard — a judge types a
+   digit and the JS advances to the next box (ssMeetAccess.js focuses
+   .seSkillScore directly). Which box has focus is therefore the primary
+   thing on screen, and the legacy skin marked it with a green filled box.
+   Ported here as the same green, expressed the way .seScore:focus is
+   above. Without this rule the boxes fell back to the browser's default
+   focus ring, which on a borderless 1-char input is nearly invisible.
+   :active is carried over with :focus because the legacy rule listed both
+   and a mouse-down on a box should not flash a different treatment. */
+.lm-tnt .seSkillScore:focus,
+.lm-tnt .seSkillScore:active,
+.lm-tnt .seSkillTOF:focus,
+.lm-tnt .seSkillTOF:active,
+.lm-tnt .seSkillHD:focus,
+.lm-tnt .seSkillHD:active,
+.lm-tnt .seSkillDD:focus,
+.lm-tnt .seSkillDD:active,
+.lm-tnt .seSkillSynch:focus,
+.lm-tnt .seSkillSynch:active {
+  outline: 0;
+  border: 1px solid #4ecc52;
+  border-radius: var(--bs-border-radius-sm, .25rem);
+  background-color: #e5ffec;
+}
+
+/* Skill 98 is the Landing Deduction box, not a numbered skill: the JS
+   widens it to maxlength/size 2 and relabels the header "LD"
+   (ssMeetAccess.js). It needs the wider well to match, or a two-digit
+   deduction is typed into a box sized for one character. !important, as
+   in the legacy rule: .seSkillNoScore also sets width/margin-left
+   !important and can land on this same input, and the LD box must keep
+   its own geometry when it does. */
+.lm-tnt #skillScore98 {
+  width: 80% !important;
+  margin-left: 10% !important;
+}
+
+/* The other four skill-cell inputs. Same underline-only treatment as
+   .seSkillScore; they differ only in how wide the value is — TOF and
+   Synch hold a time to 3 decimals, DD two digits, HD one. Each is emitted
+   from its own template in TNTTemplates.html (tmSkillTOF / tmSkillHD /
+   tmSkillDD / tmSkillSynch), and without these rules they rendered as
+   stock full-width text inputs and broke the column grid. */
+.lm-tnt .seSkillTOF,
+.lm-tnt .seSkillHD,
+.lm-tnt .seSkillDD,
+.lm-tnt .seSkillSynch {
+  border: 0;
+  border-bottom: 1px solid var(--bs-border-color, #7f7f7f);
+  background: transparent;
+  text-align: center;
+  height: 20px;
+  box-sizing: border-box;
+  font-size: var(--se-font);
+}
+.lm-tnt .seSkillTOF   { width: 92%; margin-left: 5%;    font-size: var(--se-font-sm); }
+.lm-tnt .seSkillHD    { width: 50%; margin-left: 24.8%; }
+.lm-tnt .seSkillDD    { width: 70%; margin-left: 24.8%; }
+.lm-tnt .seSkillSynch { width: 87%; margin-left: 5%; }
+
+.lm-tnt .seHorzDisp { width: 70%; margin: auto; }
+.lm-tnt .seStatusPopup {
+  z-index: 1001;
+  position: absolute;
+  top: 150px; left: 50px;
+  padding: 9px;
+  border: 1px solid var(--se-border);
+  border-radius: var(--bs-border-radius, .375rem);
+  background: var(--bs-body-bg, #f2f2f2);
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+  font-size: var(--se-font-sm);
+  width: 360px;
+}
+
+/* ---------- base TeamWeb classes used in the dialog form ----------
+   .data/.label/.GrayText are legacy Verdana/8pt declarations from
+   styles.css. Mapped onto the Bootstrap type scale instead of reproduced
+   literally — LiveMeet uses Inter, and dragging Verdana into one dialog
+   would look like a rendering bug. Scoped to .lm-tnt so nothing else in
+   the app inherits them. .databind/.databound carry no styling at all;
+   they are osDbRecord binding hooks. */
+.lm-tnt .data     { font-size: var(--se-font); font-weight: 400; color: var(--bs-body-color, #212529); }
+.lm-tnt .label    { font-size: var(--se-font); font-weight: 700; color: var(--bs-body-color, #212529); }
+.lm-tnt .GrayText { font-size: var(--se-font-sm); font-weight: 400; color: var(--se-muted); }
+.lm-tnt .dgEntryRow { padding: 4px 5px 5px 5px; }
+.lm-tnt .dgEntryRow > label { width: 120px; font-weight: 700; display: inline-block; }
+
+
+/* ==================================================================
+   FLIGHT PANEL — Bootstrap 5 flavour
+   ==================================================================
+   #dgTNTFlight is no longer a dialog in ANY host. Scripts/MeetTNT.js
+   builds the chrome (.flightPanelHead / .flightPanelFoot) and swaps the
+   panel in for #pnSchedule. The structural rules live in
+   css/TnTStyles.css so the two TeamWeb hosts get them too; this block
+   only restyles it for LiveMeet. */
+/* ------------------------------------------------------------------
+   TWEAKABLE IN DEVTOOLS
+
+   Every knob for the panel's frame, header and footer is a custom
+   property declared ON .flightPanel itself — not on :root — so selecting
+   #dgTNTFlight in the DevTools element picker shows the whole set in the
+   Styles pane, editable inline with live feedback. Change a value there,
+   settle on a look, then copy the ones you kept back into this block.
+
+   Grouped: --fp-* frame, --fp-head-* header, --fp-foot-* footer.
+   ------------------------------------------------------------------ */
+.lm-tnt .flightPanel {
+  /* frame */
+  /* Caps the panel and therefore EVERYTHING in it — the athlete matrix and
+     the one-athlete score panel alike, which are siblings and so needed a
+     shared ancestor to be capped together. 1500px clears every common
+     laptop viewport (widest is the 16" MBP at 1728; 1920@125% is 1536), so
+     it only engages on desktop monitors. --fp-max-align centres the panel
+     in the leftover space; set it to 0 to left-anchor. */
+  --fp-max-width:    1350px;
+  --fp-max-align:    auto;
+  --fp-border-width: 1px;
+  --fp-border-style: solid;
+  --fp-border-color: var(--se-border);
+  --fp-radius:       var(--bs-border-radius, .375rem);
+  --fp-bg:           var(--se-surface);
+  --fp-shadow:       var(--lm-shadow, 0 4px 16px rgba(15,29,58,.08));
+  /* Split so the footer can derive its full-bleed margins from the same
+     values — see .flightPanelFoot. Keep them as a pair. */
+  --fp-pad-y:        14px;
+  --fp-pad-x:        16px;
+
+  /* header */
+  --fp-head-bg:            transparent;
+  --fp-head-border-width:  1px;
+  --fp-head-border-color:  var(--se-border);
+  --fp-head-pad:           0 0 8px;
+  --fp-head-mb:            10px;
+
+  /* footer — the action bar. Given its own tint by default so it reads as
+     a distinct band rather than more panel body. */
+  --fp-foot-bg:            var(--bs-tertiary-bg, #f8f9fa);
+  --fp-foot-border-width:  1px;
+  --fp-foot-border-color:  var(--se-border);
+  --fp-foot-pad:           10px 12px;
+  --fp-foot-mt:            14px;
+  --fp-foot-radius:        0 0 var(--bs-border-radius, .375rem) var(--bs-border-radius, .375rem);
+
+  /* STICKY FOOTER — the control row pins to the bottom of the viewport
+     while a long athlete list scrolls past, so Prev/Next Flight, Save and
+     Close are always reachable.
+
+     Preferred over the two alternatives:
+       - Moving the buttons to the top inverts the convention (Save/Close
+         belong at the end of a form) and would crowd the flight title.
+       - Capping the score matrix height creates a SECOND scroll region
+         inside a page that already scrolls, which is worse to use and
+         fights the min-height that stops the panel collapsing on open.
+     Set --fp-foot-position: static to compare against a normal footer. */
+  --fp-foot-position:      sticky;
+  --fp-foot-bottom:        0;
+  --fp-foot-z:             2;
+
+  max-width: var(--fp-max-width);
+  margin-inline: var(--fp-max-align);
+  border: var(--fp-border-width) var(--fp-border-style) var(--fp-border-color);
+  border-radius: var(--fp-radius);
+  background: var(--fp-bg);
+  box-shadow: var(--fp-shadow);
+  padding: var(--fp-pad-y) var(--fp-pad-x);
+}
+.lm-tnt .flightPanelHead {
+  background: var(--fp-head-bg);
+  padding: var(--fp-head-pad);
+  margin-bottom: var(--fp-head-mb);
+  border-bottom: var(--fp-head-border-width) solid var(--fp-head-border-color);
+}
+.lm-tnt .flightPanelTitle {
+  font-size: var(--lm-fs-xl, 15px);
+  font-weight: 700;
+  color: var(--bs-emphasis-color, #0f1d3a);
+}
+/* Negative side margins pull the footer out to the panel's inner edges so
+   the tint spans the full width, rather than sitting inset by --fp-pad. */
+.lm-tnt .flightPanelFoot {
+  background: var(--fp-foot-bg);
+  padding: var(--fp-foot-pad);
+  margin: var(--fp-foot-mt) calc(-1 * var(--fp-pad-x)) calc(-1 * var(--fp-pad-y));
+  border-top: var(--fp-foot-border-width) solid var(--fp-foot-border-color);
+  border-radius: var(--fp-foot-radius);
+  position: var(--fp-foot-position);
+  bottom: var(--fp-foot-bottom);
+  z-index: var(--fp-foot-z);
+}
+
+/* Score-matrix placeholder (FlightLoadingMessage in Scripts/MeetTNT.js).
+   min-height:inherit takes whatever #seScoresContentMatrix is set to, so the
+   message centres in the reserved area rather than needing its own height —
+   change the container's min-height and this follows. */
+.lm-tnt .seMatrixLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: inherit;
+  color: var(--se-muted);
+  font-size: var(--lm-fs-lg, 14px);
+}
+
+/* ---------- athlete header above the score panel ----------
+   #seScoreHeader is an ID, not a class — which is why the first port missed
+   it: that pass swept the CLASSES the dialog emits. The blue gradient is the
+   banner carrying the athlete name, club and level above their scores.
+
+   Gradient split into stops so it can be retuned (or flattened to a solid by
+   setting --se-hdr-bg to a single colour) from DevTools. */
+.lm-tnt {
+  --se-hdr-from: #0e76bc;
+  --se-hdr-to:   #68abd9;
+  --se-hdr-bg:   linear-gradient(79deg, var(--se-hdr-from) 0%, var(--se-hdr-to) 100%);
+  --se-hdr-fg:   #fff;
+}
+.lm-tnt #seScoreHeader {
+  flex: 1 0 auto;
+  margin: 0 0 5px;
+  padding: 4px;
+  border-radius: var(--bs-border-radius, .375rem);
+  font-weight: 700;
+  font-size: var(--lm-fs-lg, 14px);
+  background: var(--se-hdr-bg);
+  color: var(--se-hdr-fg);
+  box-shadow: 0 0 5px 2px rgba(65,65,65,.35);
+  /* legacy set font-family:arial here; dropped so it uses the app face */
+}
+
+/* ==================================================================
+   SCORE PANEL — ID-BASED RULES
+   ==================================================================
+   The original port swept the CLASSES the panel emits and missed every
+   id-based rule wholesale (#seScoreHeader above was the first symptom).
+   These are the ones confirmed present in an open flight/score panel that
+   had a rule in css/TnTStyles.css and none here.
+
+   Mostly structural — flex direction, widths, the stacking context the
+   skills popover needs — so their absence showed up as layout drifting
+   rather than as anything obviously "unstyled". */
+
+.lm-tnt #seScoreContent {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  background: var(--se-panel-bg, #f7f7f7);
+  font-size: var(--se-font);
+}
+.lm-tnt #seScoreControl {
+  flex-shrink: 0;
+  min-height: 25px;
+  width: 98%;
+  padding-top: 6px;
+}
+/* Not capped here — the width limit lives on .flightPanel (--fp-max-width)
+   so it governs this matrix and the one-athlete #seScoreContent panel
+   together. They are siblings, so the shared ancestor is the only place a
+   single number can reach both. */
+.lm-tnt #seScores,
+.lm-tnt #seScoresContent {
+  clear: both;
+  width: 100%;
+  padding: 5px;
+  box-sizing: border-box;
+}
+/* The rule dividing the flight toolbar from the athlete matrix. */
+.lm-tnt #seScoresContentControl {
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 2px solid var(--se-muted);
+}
+.lm-tnt #seAthleteInfo,
+.lm-tnt #seAthletesContent { width: 100%; }
+.lm-tnt #seAthleteHeader {
+  padding: 4px;
+  margin-bottom: 5px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+}
+.lm-tnt #seSEC { margin-left: 78px; color: var(--se-posted); padding-top: 3px; }
+
+/* ---------- skills popover ----------
+   NOTE the hardcoded absolute offsets carried over from the legacy rule.
+   They assume the panel sits where the old dialog put it, so this is a
+   candidate to rework now that the panel is full width — flagged rather
+   than changed, since the skills entry flow is untested here. */
+.lm-tnt #seSkillsEntryOuter {
+  padding: 8px;
+  height: auto;
+  width: 430px;
+  border-radius: var(--bs-border-radius, .375rem);
+  box-sizing: border-box;
+  z-index: 1001;
+  position: absolute;
+  top: 105px;
+  left: 210px;
+  border: 1px solid var(--se-active) !important;
+  background: var(--se-surface) !important;
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+}
+.lm-tnt #seSkillsEntry {
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+}
+.lm-tnt #seSkillsHeader { font-weight: 700; padding: 2px 0; margin-bottom: 0; font-size: var(--se-font); }
+.lm-tnt #seSkillsOps    { padding: 3px; width: 100%; margin-bottom: 3px; display: flex; }
+.lm-tnt #seSkillsFooter { display: flex; width: 100%; justify-content: space-between; margin-top: 12px; }
+
+/* ---------- start-scoring overlay ---------- */
+.lm-tnt #seStartScoring {
+  margin: 12% 2% 2%;
+  width: 96%;
+  height: 90%;
+  box-sizing: border-box;
+  z-index: 9999;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: var(--bs-border-radius, .375rem);
+}
+.lm-tnt #btStartScoringOuter {
+  position: absolute;
+  top: 8%;
+  left: 22%;
+  opacity: 1 !important;
+  z-index: 10001;
+}
+
+/* Athlete header layout (#seScoreHeader). Structural rules are shared via
+   css/TnTStyles.css; these size the two lines off the app type scale so the
+   header follows a global font change. --se-hdr-name-fs is the knob for the
+   athlete name specifically. */
+.lm-tnt {
+  --se-hdr-name-fs: var(--lm-fs-2xl, 16px);
+  --se-hdr-meta-fs: var(--lm-fs-md, 13px);
+}
+.lm-tnt .seHdrGrid {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+.lm-tnt .seHdrSeq  { flex: 0 0 auto; }
+.lm-tnt .seHdrMain { flex: 1 1 auto; min-width: 0; }
+.lm-tnt .seHdrName {
+  margin-right: 15px;
+  font-size: var(--se-hdr-name-fs);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.lm-tnt .seHdrMeta {
+  display: inline-block;
+  margin-right: 15px;
+  font-size: var(--se-hdr-meta-fs);
+}

@@ -1,0 +1,428 @@
+<!-- TNTTemplates.html — the shared <template> set for every TNT screen.
+     A near-verbatim copy of Team/toTNTTemplates.html (56 templates).
+
+     It is copied rather than restyled because these templates emit the
+     private se-/ta- class namespaces, which tnt.css (beside this file)
+     restyles for Bootstrap 5 — that is the whole point of the
+     one-renderer/two-skins approach. Change markup here only when the
+     old file changes; keep the two in step.
+
+     SHARED by apps/LiveMeet and apps/ttJudgeScoring. Loaded ONCE into
+     body-level #lmTntTemplates by each app's TNT loader.
+     ssLoadTable/ssLoadSection look these up by bare id, so a second copy
+     anywhere on the page would create duplicate ids and silently bind the
+     wrong one. -->
+<template style="display:none;" id="tmTNTSessionHeader">
+   <div id="pnTNTSessionHeader" style="display:flex;flex-wrap:nowrap;align-content:stretch;">
+       <div class="shBox shSessionNo">#</div>
+       <div class="shBox shSessionName">Names</div>
+       <div class="shBox shSessionClubCode">Club</div>
+       <div class="shBox shSessionCategory">Category</div>
+       <div class="shBox shSessionLevel">Level</div>
+       <div class="shBox shSessionRoutine">Routine</div>
+       <div class="shBox shSessionID">ID</div>
+       <div class="shBox shSessionWarmUp">Warm up</div>
+       <div class="shBox shSessionTouch">Touch</div>
+       <div class="shBox shSessionCompete">Compete</div>
+   </div>
+</template>
+<template style="display:none;" id="tmTNTSessionScore">
+   <div id="pnTNTSessionScore" style="display:flex;flex-wrap:nowrap;align-content:stretch;" data-id="{{TeamPlayerId}}">
+       <div class="shBox shSessionNo"></div>
+       <div class="shBox shSessionName">{{AthleteNames}}</div>
+       <div class="shBox shSessionClubCode">{{OrgNameAbbrev}}</div>
+       <div class="shBox shSessionCategory">{{PartnershipCode}}</div>
+       <div class="shBox shSessionLevel">{{LevelName}}</div>
+       <div class="shBox shSessionRoutine">{{SportEventCode}}</div>
+       <div class="shBox shSessionID">{{PartnershipSeq}}</div>
+       <div class="shBox shSessionWarmUp"></div>
+       <div class="shBox shSessionTouch"></div>
+       <div class="shBox shSessionCompete"></div>
+   </div>
+</template>
+<template style="display:none;" id="tmTNTFinalsPrepH">
+   <div class="label seFinalsH" style="display:flex;flex-wrap:nowrap;align-content:stretch;align-items: center;">
+        <div class="sfCell sfInOut">Inc/Exc</div>
+        <div class="sfCell sfFlightSeq">#</div>
+        <div class="sfCell sfAthleteName">Athlete</div>
+        <div class="sfCell sfClub">Club</div>
+        <div class="sfCell sfLevel">Level</div>
+        <div class="sfCell sfAge">Age</div>
+        <div class="sfCell sfScore">Score</div>
+        <div class="sfCell sfRank">Rank</div>
+   </div>
+</template>
+<template style="display:none;" id="tmTNTFinalsPrep">
+   <div class="data seFinals" style="display:flex;flex-wrap:nowrap;align-content:stretch;align-items: center;" data-id="{TeamPlayerId}" id="ma{TeamPlayerId}">
+        <div class="sfCell sfInOut"><img class="sfInOutImg" src="/images/AttendYes.png" alt="Include or Exclude from finals" /></div>
+        <div class="sfCell sfFlightSeq"></div>
+        <div class="sfCell sfAthleteName noTextWrap">{{AthleteNames}}</div>
+        <div class="sfCell sfClub noTextWrap">{{OrgName}}</div>
+        <div class="sfCell sfLevel noTextWrap">{{ActiveEventLevelName}}</div>
+        <div class="sfCell sfAge">{{AgeInfo}}</div>
+        <div class="sfCell sfScore">{{PrelimTotal}}</div>
+        <div class="sfCell sfRank">{{PrelimRankReport}}</div>
+   </div>
+</template>
+<template style="display:none;" id="tmFinalsPrep">
+   <div class="data seFinals" style="display:flex;flex-wrap:nowrap;align-content:stretch;align-items: center;" data-id="{TeamPlayerId}" id="ma{TeamPlayerId}">
+        <div class="sfCell sfInOut"><img class="sfInOutImg" src="/images/AttendYes.png" alt="Include or Exclude from finals" /></div>
+        <div class="sfCell sfFlightSeq"></div>
+        <div class="sfCell sfAthleteName noTextWrap">{{AthleteName}}</div>
+        <div class="sfCell sfClub noTextWrap">{{OrgName}}</div>
+        <div class="sfCell sfLevel noTextWrap">{{ActiveEventLevelName}}</div>
+        <div class="sfCell sfAge">{{AgeInfo}}</div>
+        <div class="sfCell sfScore">{{EventPrelimScore}}</div>
+        <div class="sfCell sfRank">{{EventRank}}</div>
+   </div>
+</template>
+
+<template style="display:none;" id="tmAthleteHeader"><tr class="colHead4"><th class="taAthleteNo">#</th><th class="taAthlete">Athlete</th><th class="taClub">Club</th><th class="taLevel">Level</th><th class="taSelect">&nbsp;</th></tr></template>
+<template style="display:none;" id="tmAthleteRow"><tr id="at{TeamPlayerId}" class="taAthleteRow"><th class="taAthleteNo">{PlayerNo}</th><th class="taAthlete">{AthleteName}</th><th class="taClub">{OrgName}</th><th class="taLevel">{ActiveEventLevelName}</th><th class="taSelect"><img class="itemSelect taAthleteSelect" src="/images/listRightArrow.png" alt="" /></th></tr></template>
+<template style="display:none;" id="tmAthleteA">
+   <div class="seAthlete seAthleteIN ew80" data-id="{TeamPlayerId}" id="ap{TeamPlayerId}" data-AgeRangeId="{{EventAgeRangeId}}">
+       <div class="seAN databind" data-fieldname="AthleteNames"></div>
+       <div class="seAC databind" data-fieldname="ClubShortName"></div>
+       <div class="seAL databind" data-fieldname="ActiveEventLevelCode"></div>
+       <div class="seAA databind" data-fieldname="AgeInfo"></div>
+       <div class="seAG databind" data-fieldname="GenderCd"></div>
+   </div>
+</template>
+<template style="display:none;" id="tmAthleteF">
+   <div class="seAthlete seAthleteIN ew80" data-id="{TeamPlayerId}" id="ap{TeamPlayerId}" data-AgeRangeId="{{EventAgeRangeId}}">
+       <div class="seCell databind" style="width:35%;" data-fieldname="AthleteNames"></div>
+       <div class="seCell databind" style="width:25%;" data-fieldname="ClubShortName"></div>
+       <div class="seCell databind" style="width:10%;" data-fieldname="ActiveEventLevelCode"></div>
+       <div class="seCell databind" style="width:12%;" data-fieldname="AgeInfo"></div>
+       <div class="seCell databind" style="width:6%;text-align:center;" data-fieldname="GenderCd"></div>
+       <div class="seCell databind sePrelimRank" style="width:12%;text-align:right;" data-fieldname="PrelimRankInfo" title="Preliminary Rank"></div>
+   </div>
+</template>
+<template style="display:none;" id="tmAthleteTFHeader">
+   <div class="seAthlete ew80 seAthleteHeader">
+       <div class="seCell databind" style="width:36%;">Athlete</div>
+       <div class="seCell databind" style="width:20%;">Level</div>
+       <div class="seCell databind" style="width:15%;">Age Rge</div>
+       <div class="seCell databind" style="width:8%;text-align:center;">Gndr</div>
+       <div class="seCell databind seTFPRank" style="width:12%;text-align:right;">P Rank</div>
+       <div class="seCell databind seTFORank" style="width:12%;text-align:right;">F Rank</div>
+   </div>
+</template>
+<template style="display:none;" id="tmAthleteTF">
+   <div class="seAthlete ew80" data-id="{PlayerId}" id="tf{PlayerId}" data-AgeRangeId="{{AgeRangeId}}">
+       <div class="seCell databind" style="width:36%;" data-fieldname="AthleteNames"></div>
+       <div class="seCell databind" style="width:20%;" data-fieldname="LevelName"></div>
+       <div class="seCell databind" style="width:15%;" data-fieldname="AgeRangeName"></div>
+       <div class="seCell databind" style="width:8%;text-align:center;" data-fieldname="GenderCd"></div>
+       <div class="seCell databind seTFPRank" style="width:12%;text-align:right;" data-fieldname="PRank" title="Prelim Rank"></div>
+       <div class="seCell databind seTFORank" style="width:12%;text-align:right;" data-fieldname="ORank" title="Overall Rank"></div>
+   </div>
+</template>
+<template style="display:none;" id="tmAthleteTFF">
+   <div class="seAthlete seAthleteIN" data-id="{{TeamPlayerId}}" id="tf{{TeamPlayerId}}">
+       <div class="seCell" style="width:8%;">{{TeamFinalsRound}}</div>
+       <div class="seCell" style="width:33%;">{{TeamName}}</div>
+       <div class="seCell" style="width:33%;">{{Name}}</div>
+       <div class="seCell" style="width:18%;">{{LevelAgeRange}}</div>
+       <div class="seCell" style="width:8%;text-align:center;">{{GenderCd}}</div>
+   </div>
+</template>
+<template style="display:none;" id="tmAthleteScheduleHeader"><tr class="colHead4"><th class="taScheduleDay">Day</th><th class="taScheduleStartTime">Time</th><th class="taScheduleBlock">Block</th><th class="taScheduleEvent">Event</th><th class="taScheduleFacility">Gym</th><th class="taScheduleFlight">Flight</th><th class="taScheduleType">Type</th></tr></template>
+<template style="display:none;" id="tmAthleteScheduleRow"><tr id="ats{TeamPlayerId}" class="taAthleteScheduleRow"><td class="taScheduleDay">{BlockDate}</td><td class="taScheduleStartTime">{StartTime}</td><td class="taScheduleBlock">{BlockNumber}</td><td class="taScheduleEvent">{SportEventName}</td><td class="taScheduleFacility">{FacilityName}</td><td class="taScheduleFlight">{SegmentLabel}</td><td class="taScheduleType">{SessionTypeName}</td></tr></template>
+<template style="display:none;" id="tmSkillScore">
+    <div class="seSkill" data-skillno="{{SkillNo}}" id="sk{{SkillNo}}">
+       <div class="seSkillRow seSkillHeader">{{SkillNo}}</div>
+       <div class="seSkillRow"><input type="text" size="1" maxlength=1 autocomplete="off" name="Score" id="skillScore{{SkillNo}}" class="seSkillScore sAddClasses" value="{{EditableScore}}" /></div>
+       <div class="seSkillRow seNoScoreRow"><a href="#" tabindex="-1" class="SSicon seNoScore"><img src="https://www.sportzsoft.com/images/LMIcons/DeleteIcon.svg" type="image/svg+xml" class="SSicon" style="pointer-events:none;" width=16 height=16></img></a>
+            <a href="#" tabindex="-1" class="SSicon seCancelNoScore" style="display:none;"><img src="https://www.sportzsoft.com/images/LMIcons/RefreshIcon.svg" type="image/svg+xml" class="SSicon" style="pointer-events:none;" width=16 height=16></img></a>
+       </div>
+    </div>
+</template>
+<template style="display:none;" id="tmSkillTOF">
+    <div class="seSkill" data-skillno="{{SkillNo}}" id="sk{{SkillNo}}">
+       <div class="seSkillRow seSkillHeader">{{SkillNo}}</div>
+       <div class="seSkillRow"><input type="text" size="5" maxlength=5 autocomplete="off" name="Score" class="seSkillTOF sAddClasses" value="{{DisplayTOF}}" /></div>
+    </div>
+</template>
+<template style="display:none;" id="tmSkillHD">
+    <div class="seSkill" data-skillno="{{SkillNo}}" id="sk{{SkillNo}}">
+       <div class="seSkillRow seSkillHeader">{{SkillNo}}</div>
+       <div class="seSkillRow"><input type="text" size="1" maxlength=1 autocomplete="off" name="Score" class="seSkillHD sAddClasses" value="{{DisplayHD}}" /></div>
+    </div>
+</template>
+<template style="display:none;" id="tmSkillDD">
+    <div class="seSkill" data-skillno="{{SkillNo}}" id="sk{{SkillNo}}">
+       <div class="seSkillRow seSkillHeader">{{SkillNo}}</div>
+       <div class="seSkillRow"><input type="text" size="2" maxlength=2 autocomplete="off" name="Score" class="seSkillDD sAddClasses" value="{{DisplayDD}}" /></div>
+    </div>
+</template>
+<template style="display:none;" id="tmSkillSynch">
+    <div class="seSkill" data-skillno="{{SkillNo}}" id="sk{{SkillNo}}">
+       <div class="seSkillRow seSkillHeader">{{SkillNo}}</div>
+       <div class="seSkillRow"><input type="text" size="5" maxlength=5 autocomplete="off" name="Score" class="seSkillSynch sAddClasses" value="{{DisplaySynchScore}}" /></div>
+    </div>
+</template>
+<template style="display:none;" id="tmResultsH">
+   <th class="rpScoreW">EXE</th><th class="rpScore">DD</th><th class="rpScore">P</th><th class="rpScore">B</th><th class="rpScoreFinal">Total</th><th class="rpScoreVideo" style="display:none;"></th>
+</template>
+<template style="display:none;" id="tmResults">
+   <td class="rpScoreW">{{EScoreAvgReport}}</td><td class="rpScore">{{DifficultyScoreReport}}</td><td class="rpScore">{{PenaltyReport}}</td><td class="rpScore">{{BonusScoreReport}}</td><td class="rpScoreFinal">{{FinalScoreReport}}</td><td class="rpScoreVideo" style="display:none;" data-ScoreVideoId="{{ScoreVideoId}}"></td>
+</template>
+<template style="display:none;" id="tmResults11H">
+   <th class="rpScoreW">EXE</th><th class="rpScore">HD</th><th class="rpScoreW">TOF</th><th class="rpScore">DD</th><th class="rpScore">P</th><th class="rpScore">B</th><th class="rpScoreFinal">Total</th><th class="rpScoreVideo" style="display:none;"></th> 
+</template>
+<template style="display:none;" id="tmResults11">
+   <td class="rpScoreW">{{EScoreAvgReport}}</td><td class="rpScore">{{HorzDispScoreReport}}</td><td class="rpScoreW">{{TOFScoreReport}}</td><td class="rpScore">{{DifficultyScoreReport}}</td><td class="rpScore">{{PenaltyReport}}</td><td class="rpScore">{{BonusScoreReport}}</td><td class="rpScoreFinal">{{FinalScoreReport}}</td><td class="rpScoreVideo" style="display:none;" data-ScoreVideoId="{{ScoreVideoId}}"></td>
+</template>
+
+<template style="display:none;" id="tmResults12H">
+   <th class="rpScoreW">EXE</th><th class="rpScore">HD</th><th class="rpScoreW">Synch</th><th class="rpScore">DD</th><th class="rpScore">P</th><th class="rpScore">B</th><th class="rpScoreFinal">Total</th>
+</template>
+<template style="display:none;" id="tmResults12">
+   <td class="rpScoreW">{{EScoreAvgReport}}</td><td class="rpScore">{{HorzDispScoreReport}}</td><td class="rpScoreW">{{SynchScoreReport}}</td><td class="rpScore">{{DifficultyScoreReport}}</td><td class="rpScore">{{PenaltyReport}}</td><td class="rpScore">{{BonusScoreReport}}</td><td class="rpScoreFinal">{{FinalScoreReport}}</td>
+</template>
+
+<template style="display:none;" id="tmResultsPreH">
+   <th class="rpRank rpTotalRank">F Rk</th><th class="rpRank rpSemiRank">S Rk</th><th class="rpRank rpPrelimRank">P Rk</th><th class="rpPS">Prov</th><th class="rpClub">Club</th><th class="rpName">Name</th>
+</template>
+<template style="display:none;" id="tmResultsPre">
+   <td class="rpRank rpTotalRank">{{OverallRankReport}}</td><td class="rpRank rpSemiRank">{{SemiFinalRankReport}}</td><td class="rpRank rpPrelimRank">{{PrelimRankReport}}</td><td class="rpPS">{{ProvStateCd}}</td><td class="rpClub">{{ClubShortName}}</td><td class="rpName">{{AthleteNames}}</td>
+</template>
+
+<template style="display:none;" id="tmResultsDetailed11H">
+   <tr><th class="rpRDRank">Rank</th><th class="rpRDTOF">TOF</th><th class="rpRDEScoreAvg">Exec</th><th class="rpRDHDScore rpHD1">HD1</th><th class="rpRDHDScore rpHD2">HD2</th><th class="rpRDHDScore">HD</th><th class="rpRDScore">DD</th><th class="rpRDScore">Pen</th><th class="rpRDScore">Bon</th><th class="rpRDScoreFinal">Final</th><th class="rpRDFlightTotal">Total</th><th class="rpRDScoreFinal">Total</th></tr>
+</template>
+<template style="display:none;" id="tmResultsDetailed11">
+   <tr><td class="rpRDRank">&nbsp;</td><td class="rpRDTOF">{{TOFScoreReport}}</td><td class="rpRDEScoreAvg">{{EScoreAvgReport}}</td><td class="rpRDHDScore rpHD1">{{HorzDisplScore1Report}}</td><td class="rpRDHDScore rpHD2">{{HorzDisplScore2Report}}</td><td class="rpRDHDScore">{{HorzDispScoreReport}}</td><td class="rpRDScore">{{DifficultyScoreReport}}</td><td class="rpRDScore">{{PenaltyReport}}</td><td class="rpRDScore">{{BonusScoreReport}}</td><td class="rpRDScoreFinal">{{FinalScoreReport}}</td><td class="rpRDFlightTotal">{{FlightTotal}}</td><td class="rpRDScoreFinalEmpty">&nbsp;</td><td class="rpRDFlightCode">{{FlightCode}}</td></tr>
+</template>
+
+<template style="display:none;" id="tmResultsDetailed12H">
+   <tr><th class="rpRDRank">Rank</th><th class="rpRDEScoreAvg">Exec</th><th class="rpRDHDScore rpHD1">HD1</th><th class="rpRDHDScore rpHD2">HD2</th><th class="rpRDHDScore">HD</th><th class="rpRDSynchScore">Sync</th><th class="rpRDScore">DD</th><th class="rpRDScore">Pen</th><th class="rpRDScore">Bon</th><th class="rpRDScoreFinal">Final</th><th class="rpRDFlightTotal">Total</th><th class="rpRDScoreFinal">Total</th></tr>
+</template>
+<template style="display:none;" id="tmResultsDetailed12">
+   <tr><td class="rpRDRank">&nbsp;</td><td class="rpRDEScoreAvg">{{EScoreAvgReport}}</td><td class="rpRDHDScore rpHD1">{{HorzDisplScore1Report}}</td><td class="rpRDHDScore rpHD2">{{HorzDisplScore2Report}}</td><td class="rpRDHDScore">{{HorzDispScoreReport}}</td><td class="rpRDSynchScore">{{SynchScoreReport}}</td><td class="rpRDScore">{{DifficultyScoreReport}}</td><td class="rpRDScore">{{PenaltyReport}}</td><td class="rpRDScore">{{BonusScoreReport}}</td><td class="rpRDScoreFinal">{{FinalScoreReport}}</td><td class="rpRDFlightTotal">{{FlightTotal}}</td><td class="rpRDScoreFinalEmpty">&nbsp;</td><td class="rpRDFlightCode">{{FlightCode}}</td></tr>
+</template>
+
+<template style="display:none;" id="tmResultsDetailedH">
+   <tr><th class="rpRDRank">Rank</th><th class="rpRDEScoreAvg">Exec</th><th class="rpRDScore">DD</th><th class="rpRDScore">Pen</th><th class="rpRDScore">Bon</th><th class="rpRDScoreFinal">Final</th><th class="rpRDFlightTotal">Total</th><th class="rpRDScoreFinal">Total</th></tr>
+</template>
+<template style="display:none;" id="tmResultsDetailed">
+   <tr><td class="rpRDRank">&nbsp;</td><td class="rpRDEScoreAvg">{{EScoreAvgReport}}</td><td class="rpRDScore">{{DifficultyScoreReport}}</td><td class="rpRDScore">{{PenaltyReport}}</td><td class="rpRDScore">{{BonusScoreReport}}</td><td class="rpRDScoreFinal">{{FinalScoreReport}}</td><td class="rpRDFlightTotal">{{FlightTotal}}</td><td class="rpRDScoreFinalEmpty">&nbsp;</td><td class="rpRDFlightCode">{{FlightCode}}</td></tr>
+</template>
+
+<template style="display:none;" id="tmLevelCountsH">
+   <tr><th class="lcLevelName">&nbsp;</th><th id="lcEV1" colspan="2" text-align="center"></th><th id="lcEV2" colspan="2" text-align="center"></th><th id="lcEV3" colspan="2" text-align="center"></th><th id="lcEV4" colspan="2" text-align="center"></th></tr>
+</template>
+<template style="display:none;" id="tmLevelCountsH2">
+   <tr><th style="text-align:left;">Level</th><th class="lcEV1Count">#</th><th class="lcEV1RemCount">R</th><th class="lcEV2Count">#</th><th class="lcEV2RemCount">R</th><th class="lcEV3Count">#</th><th class="lcEV3RemCount">R</th><th class="lcEV4Count">#</th><th class="lcEV4RemCount">R</th></tr>
+</template>
+<template style="display:none;" id="tmLevelCounts">
+   <tr data-id="{DivisionId}"><td class="lcLevelName">{DivisionName}</td><td data-EventNo="1" class="lvevCount lcEV1Count"></td><td data-EventNo="1" class="lvevRC lcEV1RemCount"></td><td data-EventNo="2" class="lvevCount lcEV2Count"></td><td data-EventNo="2" class="lvevRC lcEV2RemCount"></td><td data-EventNo="3" class="lvevCount lcEV3Count"></td><td data-EventNo="3" class="lvevRC lcEV3RemCount"></td><td data-EventNo="4" class="lvevCount lcEV4Count"></td><td data-EventNo="4" class="lvevRC lcEV4RemCount"></td></tr>
+</template>
+<template style="display:none;" id="tmMeetRankingsLevelHeader">
+  <div class="mrMeetRankingsLevelHeader" style="display:flex;box-sizing:border-box;padding:5px;font-weight:bold;">
+       <div style="width:22%;">Level</div>
+       <div style="width:9%;text-align:center;">Athletes</div>
+       <div style="width:9%;text-align:center;">Scores</div>
+       <div style="width:9%;color:red;text-align:center;">Invalid</div>
+       <div style="width:51%;text-align:right;">Operations</div>
+  </div>
+</template>
+<template style="display:none;" id="tmMeetRankingsLevel">
+  <div class="mrMeetRankingsLevel" data-divisionid={{LevelId}} id="fs{{LevelId}}" style="display:flex;box-sizing:border-box;">
+       <div style="width:22%;">{{LevelName}}</div>
+       <div style="width:9%;text-align:center;" class="msAthleteCount">{{AthleteCount}}</div>
+       <div style="width:9%;text-align:center;" class="msScoreCount">{{ScoreCount}}</div>
+       <div style="width:9%;color:red;text-align:center;" class="mrInvalidScoreCount">{{InvalidScoreCount}}</div>
+       <div style="width:51%;text-align:right;">{{ValidateScoresOp}}&nbsp;&nbsp;{{RecalcRankingsOp}}&nbsp;&nbsp;{{ClearRankingsOp}}</div>
+  </div>
+</template>
+<template style="display:none;" id="tmFlightSheetRow">
+   <div class="faAthlete" data-id="{TeamPlayerId}" id="ap{TeamPlayerId}" data-AgeRangeId="{{EventAgeRangeId}}">
+       <div class="faFS databind" data-fieldname="EventRotationSeq"></div>
+       <div class="faAN databind" data-fieldname="AthleteNames"></div>
+       <div class="faAC databind" data-fieldname="TeamOrgName"></div>
+       <div class="faAL databind" data-fieldname="ActiveEventLevelCode"></div>
+       <div class="faAG databind" data-fieldname="GenderCd"></div>
+   </div>
+</template>
+<template style="display:none;" id="tmJudgeBlock">
+  <div class="jeJudgeBlock" data-id={{MeetTimeBlockId}} id="jb{{MeetTimeBlockId}}" style="display:flex;justify-content:space-between;">
+       <div><b>BLOCK&nbsp;#&nbsp;{{BlockNumber}}</b></div>
+       <div>{{StartEndTime}}</div>
+  </div>
+</template>
+<template style="display:none;" id="tmJudgeFlight">
+  <div class="jeJudgeFlight" data-id={{EventId}} id="jf{{EventId}}" style="display:flex;justify-content:space-between;">
+       <div>{{EventName}}</div>
+       <div>{{StartEndTime}}</div>
+  </div>
+</template>
+<template style="display:none;" id="tmScoringRulesAthleteHeader">
+   <div class="seAthleteHeader ssSortable">
+       <div style="width:19%;">Name</div>
+       <div style="width:19%;text-align:left;">Club</div>
+       <div style="width:6%;text-align:center;">Gnd</div>
+       <div style="width:10%;text-align:center;">Scores</div>
+       <div style="width:12%;text-align:center;">Complete</div>
+       <div style="width:34%;text-align:left;">Rule</div>
+   </div>
+</template>
+<template style="display:none;" id="tmScoringRulesAthlete">
+   <div class="seAthlete" data-id="{TeamPlayerId}" id="sra{TeamPlayerId}">
+       <div style="width:19%;" class="databind NoWrapCell" data-fieldname="AthleteNames"></div>
+       <div style="width:19%;text-align:left;"class="databind NoWrapCell" data-fieldname="OrgName"></div>
+       <div style="width:6%;text-align:center;"class="databind" data-fieldname="GenderCd"></div>
+       <div style="width:10%;text-align:center;"class="databind" data-fieldname="ScoreCount"></div>
+       <div style="width:12%;text-align:center;"class="databind" data-fieldname="CompletedScoreCount"></div>
+       <div style="width:34%;text-align:left;"class="databind" data-fieldname="ScoringRules"></div>
+   </div>
+</template>
+<template id="tmNoTNTLiveResultsToPublic" style="display:none;">
+   <div class="NoResultsAvailable">Live Results to the public are not viewable until after all relevant flights (both preliminaries and finals) for this level/event are completed!<div style="margin-top:20px;">Get LIVE Results using the LiveMeet APP in the store</div></div>
+   <div style="width:600px;display:flex;justify-content:space-between;margin-top:50px;margin-left:auto;margin-right:auto;">
+       <a href="https://apps.apple.com/us/app/livemeet/id1332339768?itsct=apps_box_badge&amp;itscg=30200" style="width:250px;height:83px;">
+           <img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83&amp;releaseDate=1520294400" alt="Download on the App Store" style="border-radius: 13px; width: 250px; height: 83px;">
+       </a>
+       <a href="https://play.google.com/store/apps/details?id=com.sportzsoft.LiveMeetApp&amp;pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1">
+           <img alt="Get it on Google Play" style="margin-top:-24px;width:300px;height:130px;" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png">
+       </a>
+   </div>
+</template>
+<template id="tmUnassignedAthletesHeader" style="display:none;">
+<tr class="colHead4"><th style="width:40%;">Name</th><th style="width:30%;">Age Range</th><th style="width:30%;">Club</th></tr>
+</template>
+<template id="tmUnassignedAthletes" style="display:none;">
+<tr><td style="width:40%;">{{Name}}</td><td style="width:30%;">{{AgeRangeName}}</td><td style="width:30%;">{{ClubName}}</td></tr>
+</template>
+<template id="tmClubSelect" style="display:none;">
+   <div class="stdItem stdItem2 csClub" id="cs{OrganizationId}" data-OrganizationId="{OrganizationId}">
+      <div class="csClubName">{{OrgName}}</div>
+      <div class="csProvStateCd">{{ReportProvStateCd}}</div>
+   </div>
+</template>
+<template id="tmMeetTeamInfo" style="display:none;">
+   <div class="stdItem stdItem2 mtMeetTeam" id="mt{MeetTeamId}" data-MeetTeamId="{MeetTeamId}">
+      <div class="mtTeamName">{{TeamName}}</div>
+      <div style="display:flex;align-items: center; ">
+        <div class="mtTeamClubCount">Clubs:&nbsp;{{ClubCount}}</div>
+        <img style="padding-left:10px;" src="/images/delete_icon.gif" alt="delete team" height="12"/>
+      </div>
+   </div>
+</template>
+<template id="tmTeamClubSelect" style="display:none;">
+   <div class="stdItem stdItem2 tsClub" id="tc{OrganizationId}" data-OrganizationId="{OrganizationId}">
+      <div>{{ClubName}}</div>
+      <img style="padding-left:10px;"src="/images/delete_icon.gif" alt="delete club" height="12"/>
+   </div>
+</template>
+<template id="tmTeamFinalsTeamTotalHeader" style="display:none;">
+   <tr><th class="tfRank">Rank</th><th class="tfTeam">Team</th><th class="tfScore">Score</th><th class="tfPoints">Points</th><th class="tfDiff">Diff</th></tr>
+</template>
+<template id="tmTeamFinalsTeamTotal" style="display:none;">
+   <tr data-MeetTeamId="{{MeetTeamId}}"><td class="tfRank">{{TeamFinalsRank}}</td><td class="tfTeam">{{TeamName}}</td><td class="tfScore">{{TeamFinalScoreDisplay}}</td><td class="tfPoints">{{TeamFinalsPoints}}</td><td class="tfDiff">{{TeamFinalsPointsDiff}}</td></tr>
+</template>
+<template id="tmAthleteSearch" style="display:none;">
+  <input type="hidden" name="AthleteScheduleNameLookupCount" id="AthleteScheduleNameLookupCount">
+  <div id="pnAthleteSearch" style="position: relative;">
+     <div style="margin-top:5px; margin-bottom:5px;">Please provide the athlete name...</div>
+     <table class="data" cellpadding="2" cellspacing="0">
+        <tbody>
+            <tr id="EditNameRow">
+                <td width="80" class="label">Name:</td>
+                <td><input type="text" name="Name" id="sasName" size="100" data-id="0" class="data userInput udata ui-autocomplete-input" value="" autocomplete="off"></td>
+            </tr>
+        </tbody>
+     </table>
+  </div>
+  <div id="AtleteScheduleLabel" style="margin-top:20px; margin-bottom:5px; font-weight:bold;"></div>
+  <div id="pnAthleteSchedule">
+
+  </div>
+  <div class="dgEntryRow" style="margin-top:10px;" id="dgTNTAthleteScheduleMsg"></div>
+</template>
+<template id="tmValidationInfoHeader" style="display:none;">
+   <div class="viEntry" style="font-weight:bold;display:flex;justify-content:space-between;align-items:center;gap:5px 5px;border:1px solid rgb(111, 111, 111);border-radius:5px;padding:4px;margin-bottom:3px;background-color:rgb(240, 240, 240);">
+       <div style="width:10%">Type</div>
+       <div style="width:10%">&nbsp;</div>
+       <div style="width:30%">Athlete</div>
+       <div style="width:30%">Club</div>
+       <div style="width:15%;text-align:right;">Current Score</div>
+       <div style="width:15%;text-align:right;">New/Valid Score</div>
+   </div>
+</template>
+<template id="tmValidationInfo" style="display:none;">
+   <div class="viEntry" style="display:flex;justify-content:space-between;align-items:center;gap:5px 5px;border:1px solid rgb(111, 111, 111);border-radius:5px;padding:4px;margin-bottom:3px;">
+       <div style="width:10%">{{RecordType}}</div>
+       <div style="width:10%">{{SubType}}</div>
+       <div style="width:30%">{{AthleteName}}</div>
+       <div style="width:30%">{{ClubName}}</div>
+       <div style="width:15%;text-align:right;">{{CurrentScore}}</div>
+       <div style="width:15%;text-align:right;">{{NewScore}}</div>
+   </div>
+</template>
+<template style="display:none;" id="tmVideoProgresPerUser">
+   <div class="VideoProgressPerUser" style="width:100%;margin-bottom:3px;border-bottom:2px solid #8F8F8F;" data-personid="{{PersonId}}">
+       <div class="" style="width:100%">{{PersonName}}</div>
+       <div style="min-height:23px;margin-top:1px;margin-left:12px;display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:center;">
+          <div class="vpProgressInfo" style="font-size:smaller;">{{ProgressInfo}}</div>
+          <div class="">{{Operation}}</div>
+       </div>
+
+   </div>
+</template>
+<template style="display:none;" id="tmScoringVideoPlayer">
+    <div id="dgVideoPlayer" style="display:flex;justify-content:space-between;">
+        <video id="vpPlayer" height="100%" controls>
+
+        </video>
+        <div id="pnVideoSidePanel">
+            <div id="pnVideoOptions" style="padding:3px;margin-bottom:3px;">
+               <div id="rdVideoOptions" class="ssButtonSet"></div>
+            </div>
+            <div id="pnVideoProgress" style="display:none;">
+               <div id="pnVideoViewingPerUser">
+                 <div style="display:flex;justify-content: space-between;align-items: center;">
+                     <div style="padding:3px 0px 3px 0px;margin-bottom:3px;font-weight:bold;">Video Viewing by User</div>
+                     <a href="javascript:void(0);" onclick="theTntScoreControl.RefreshVideoProgressPerUser()" class="SSicon" id="btRefreshVP1" title="Refresh"><object data="https://www.sportzsoft.com/images/LMIcons/RefreshIcon.svg" type="image/svg+xml" class="SSicon" style="pointer-events:none;"></object></a>
+                 </div>
+                 <div id="pnVideoProgressEntries"></div>
+               </div>
+               <div id="pnMyVideoViewing" style="display:none;">
+                 <div style="padding:3px 0px 3px 0px;margin-bottom:3px;font-weight:bold;">My Video Viewing</div>
+                 <div>
+                    <div id="pnMyVideoProgress">
+                       <table style="width:100%;padding:4px;font-size:smaller;">
+                       <tr><td width="35%">Status:</td><td class="databind" data-fieldname="ProgressInfo"></td></tr>
+                       <tr><td width="35%">Started:</td><td class="databind" data-fieldname="StartWatchTimestamp" data-date-format="mdythnsampm"></td></tr>
+                       <tr><td width="35%">Completed:</td><td class="databind" data-fieldname="CompleteWatchTimestamp" data-date-format="mdythnsampm"></td></tr>
+                       </table>
+                       <div style="margin-top:10px;width:100%;">
+                          <button id="btRequestRewatch" type="button" style="width:100% !important;" class="ssButton" OnClick="theTntScoreControl.RequestReWatch()">Request Re-Watch</button>
+                       </div>
+                    </div>
+                    <div id="pnMyVideoProgressNotExist">
+                       &nbsp;
+                    </div>
+                 </div>
+               </div>
+               <div>
+                  <button id="btCloseScoreVideo2" type="button" class="ssButton ssButtonClose" OnClick="theTntScoreControl.CloseVideoPlay()" style="float:right;margin-right:5px;">Close</button>
+               </div>
+            </div>
+            <div id="pnVideoNotes">
+               <div id="pnVideoJudgesNotes">
+                  <div style="padding:3px;font-weight:bold;">Judges Notes</div>
+                  <div id="txVideoJudgesNotes" style="padding:3px;">None</div>
+               </div>
+               <div id="pnVideoValidationNotes">
+                  <div style="padding:3px;font-weight:bold;">Validation Notes</div>
+                  <div id="txVideoValidationNotes" style="padding:3px;">None</div>
+               </div>
+               <div>
+                  <button id="btCloseScoreVideo" type="button" class="ssButton ssButtonClose" OnClick="theTntScoreControl.CloseVideoPlay()" style="float:right;margin-right:5px;">Close</button>
+               </div>
+            </div>
+        </div>
+    </div>
+</template>
