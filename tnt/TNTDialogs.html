@@ -79,7 +79,7 @@
         <div style="margin-top:2px;display:flex;justify-content:space-between;">
             <div>&nbsp;</div>
             <div style="margin-right:6px;">
-               <button class="ssButton" type="button" id="btCloseUAL" OnClick="CloseUnassignedAthletes()">Close</button>
+               <button class="ssButton ssButtonClose" type="button" id="btCloseUAL" OnClick="CloseUnassignedAthletes()">Close</button>
             </div>
         </div>
     </div>
@@ -427,7 +427,12 @@
                   <button style="margin-right:5px;" type="button" class="ssButton" id="btPutBackPending">Pending</button>
                   <button style="margin-right:5px;" type="button" class="ssButton" id="btPutBackOnDeck">OnDeck</button>
                </div>
-               <button type="button" class="ssButton" id="btPutBackOnDeckClose" OnClick="ClosePutBackOnDeck()">Close</button>
+               <!-- ssButtonClose because this dismisses the popup, even though
+                    .seStatusPopup is a positioned div rather than a real
+                    dialog. The class now means "this is the Close action",
+                    not "this closes a jQuery UI dialog" — same reasoning as
+                    the flight panel's Close in SetFlightPanelButtons. -->
+               <button type="button" class="ssButton ssButtonClose" id="btPutBackOnDeckClose" OnClick="ClosePutBackOnDeck()">Close</button>
             </div>
         </div>
         <div id="seSkillsEntryOuter" style="width:0px;display:none;">
@@ -512,7 +517,7 @@
         <div id="fsValidationViewer" style="margin-top:5px;overflow-y:auto;max-height:240px;display:none;">
             <div style="display:flex;justify-content: space-between;">
                 <div class="title">Invalid Scores / Rankings</div>
-                <button type="button" class="ssButton" OnClick="CloseValidationViewer()">Close</button>
+                <button type="button" class="ssButton ssButtonClose" OnClick="CloseValidationViewer()">Close</button>
             </div>
             <div id="pnInvalidScores" style="margin-top:5px;"></div>
         </div>

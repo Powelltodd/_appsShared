@@ -76,8 +76,14 @@
   --se-font-sm: var(--lm-fs-xs, 11px);
   --se-entry-w:    58px;   /* mirrors td.seEntry in TnTStyles.css     */
   --se-input-w:    51px;
-  --se-block-w:   200px;   /* one round's score block — see the row note below */
-  --se-block-gap:  15px;   /* 200+15 = the 212 ssMeetAccess.js assumes */
+  /* 212px OUTER so the CONTENT is the 200px production actually gives a
+     score block. Both skins are border-box, so the declared width is spent
+     on padding and border before any score row sees it:
+         212 - (2 x 5px padding) - (2 x 1px border) = 200px of content
+     The legacy 200px declaration yielded 188px of content; the port made it
+     182px by also widening the padding. See .seScoreBlock below. */
+  --se-block-w:   212px;
+  --se-block-gap:  15px;
 
   /* Score block backgrounds. The grey/white pair is FUNCTIONAL, not
      decorative: inactive rounds sit recessed in grey and the one being
@@ -124,17 +130,28 @@
    = 6 (ssMeetAccess.js:4899). Typically 4-5. They live in a nowrap flex
    row, so the panel needs
        blocks x (block width + gutter) + the dialog's nav column
-   of horizontal room. ssMeetAccess.js:5135 computes its own minimum as
-   ScoreBlockCount * 212.
+   of horizontal room.
 
    On a 1366px Chromebook in LANDSCAPE (the actual deployment target —
-   laptops and Chromebooks, not tablets in portrait):
-       4 blocks -> 4*215 + 110 =  970px  fits
-       5 blocks -> 5*215 + 110 = 1185px  fits
-       6 blocks -> 6*215 + 110 = 1400px  DOES NOT FIT — scrolls
-   Keep --se-block-w + --se-block-gap at or under the legacy 200+15 or
-   the 5-block case stops fitting. This is why the panel is landscape-only
-   and why portrait tablet was never a target. */
+   laptops and Chromebooks, not tablets in portrait), at the current
+   212+15 = 227 per block:
+       4 blocks -> 4*227 + 110 = 1018px  fits
+       5 blocks -> 5*227 + 110 = 1245px  fits
+       6 blocks -> 6*227 + 110 = 1472px  DOES NOT FIT — scrolls
+   The fit BOUNDARY is unchanged from the legacy 215px pitch (which gave
+   970 / 1185 / 1400): five fit, six scroll. The widening spends slack, not
+   a breakpoint — but it does spend it, so re-check these three numbers
+   before widening again.
+
+   NOTE the old constraint here — "keep block+gap at or under 215, the 212
+   ssMeetAccess.js assumes" — is retired. That 212 came from a dialog-
+   widening calculation (ScoreBlockCount * 212) that was deleted with the
+   dialog itself in Sep 2026; the panel now spans the full content width
+   and #seScoreBlocks scrolls horizontally if it ever does not. Nothing in
+   the JS reads a block width any more.
+
+   This is why the panel is landscape-only and portrait tablet was never a
+   target. */
 .lm-tnt #seScoreBlocks {
   flex: 1 1 auto;
   display: flex;
@@ -158,7 +175,20 @@
   background: var(--se-block-bg);
   border: 1px solid var(--se-border);
   border-radius: var(--bs-border-radius, .375rem);
-  padding: 8px;
+  /* 5px, matching production's .seScoreBlock in css/TnTStyles.css, not the
+     8px the port used.
+
+     The block is border-box 200px wide in BOTH skins, so the padding is
+     spent out of the same budget the score rows have to live in:
+         legacy  200 - (2 x 5) - (2 x 1 border) = 188px of content
+         port    200 - (2 x 8) - (2 x 1 border) = 182px
+     Six pixels does not sound like much, but it is taken from the widest
+     column in the panel and it is why the port's blocks felt tighter than
+     production's at the same nominal 200px.
+
+     --se-block-w is 212px for exactly this reason, so the content lands on
+     200px rather than production's 188px. See the note on that token. */
+  padding: 5px;
   box-sizing: border-box;
 }
 /* Compound selector so winning does not depend on rule order — both classes
@@ -346,19 +376,38 @@
   pointer-events: none;
 }
 
-/* Close/dismiss actions read as secondary — Bootstrap's outline-secondary.
-   Save is the primary action on that row; three identical blue buttons gave
-   Close the same weight as Save, which it should not have. */
+/* EVERY Close button in the new apps — Bootstrap's btn-success (green).
+
+   One class, one look, everywhere. .ssButtonClose is on roughly 77 Close
+   buttons across the suite, and the flight panel's Close now carries it too
+   (SetFlightPanelButtons in MeetTNT.js) so it is no longer the one
+   exception. If Close is going to look distinct, it has to look distinct
+   consistently — a green Close in one place and a grey one in another is
+   worse than either on its own.
+
+   Replaces an outline-secondary treatment. That was chosen so Close would
+   not compete with Save for weight on the same row, which is still true in
+   principle — but Close is the button a judge reaches for most on a panel
+   they cannot edit, and it was the faintest thing on screen. Green reads as
+   "done here" rather than "discard", which matches what it does: the flight
+   panel's Close leaves the flight, it does not throw anything away.
+
+   Kept as --bs-btn-* overrides so it renders as a real .btn.btn-success and
+   tracks any theme change, same as the base .ssButton. */
 .lm-tnt .ssButton.ssButtonClose {
-  --bs-btn-color: var(--bs-secondary-color, #6c757d);
-  --bs-btn-bg: transparent;
-  --bs-btn-border-color: var(--bs-border-color, #6c757d);
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--bs-success, #198754);
+  --bs-btn-border-color: var(--bs-success, #198754);
   --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: var(--bs-secondary, #6c757d);
-  --bs-btn-hover-border-color: var(--bs-secondary, #6c757d);
-  --bs-btn-active-bg: #565e64;
-  --bs-btn-active-border-color: #51585e;
-  --bs-btn-focus-shadow-rgb: 130,138,145;
+  --bs-btn-hover-bg: #157347;
+  --bs-btn-hover-border-color: #146c43;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #146c43;
+  --bs-btn-active-border-color: #13653f;
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--bs-success, #198754);
+  --bs-btn-disabled-border-color: var(--bs-success, #198754);
+  --bs-btn-focus-shadow-rgb: 60,153,110;
 }
 
 /* The by-Value / by-Skill entry-mode toggles (.btToggleScoreModes, emitted
@@ -405,8 +454,8 @@
    flex:0 0 auto keeps the anchors themselves from shrinking inside
    .seScoreControl, which IS a flex row. */
 .lm-tnt .SSicon {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   display: inline-block;
   vertical-align: middle;
   box-sizing: border-box;
@@ -419,8 +468,8 @@
 }
 .lm-tnt a.SSicon > object,
 .lm-tnt a.SSicon > img {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   display: block;
   flex: 0 0 auto;
   pointer-events: none;   /* the anchor takes the click, not the SVG doc */
@@ -454,7 +503,33 @@
 .lm-tnt .seSkill.seSkillLabels { width: 80px; }
 .lm-tnt .seSkillRow { height: var(--se-row-h); vertical-align: middle; line-height: var(--se-row-h); }
 .lm-tnt .seNoScoreRow { font-size: var(--se-font-sm); padding-top: 0; }
-.lm-tnt .seSkillHeader { text-align: center; background: var(--bs-tertiary-bg, #f8f9fa); font-weight: 600; }
+/* The skill NUMBER above each column — 1..8, 1..10, and 'LD' on skill 98.
+
+   These are headers and have to read as headers. The port put them on
+   --bs-tertiary-bg (#f8f9fa) at weight 600 with no explicit colour, which
+   is LIGHTER than the legacy #F1F1F1 it replaced — so sitting above a
+   column of score boxes they looked like one more row of data rather than
+   the thing labelling it.
+
+   Darkened on three axes at once, because no single one was enough: a
+   heavier ground, full bold, and an explicit near-black instead of
+   inheriting body colour. The bottom border is what actually separates the
+   header from the first score row — without it the darker ground just
+   reads as a taller cell.
+
+   Both values are tokens on .lm-tnt so the pair can be dialled together in
+   the DevTools element picker, same as the matrix density knobs. */
+.lm-tnt {
+  --sm-skillhead-bg: #dfe3e8;
+  --sm-skillhead-fg: #1f2a37;
+}
+.lm-tnt .seSkillHeader {
+  text-align: center;
+  background: var(--sm-skillhead-bg);
+  color: var(--sm-skillhead-fg);
+  font-weight: 700;
+  border-bottom: 1px solid var(--se-border);
+}
 .lm-tnt .seSkillsMatrixRow { min-height: 20px; }
 
 /* ---------- video panel ---------- */
@@ -659,7 +734,7 @@
   position: absolute; left: 0;
 }
 .lm-tnt .tntSegmentTime {
-  padding: 4px 2px;
+  padding: 6px 2px;
   width: 35%; max-width: 108px; min-width: 82px;
   border-right: var(--sch-line-width) solid var(--sch-line-color);
   text-align: center;
@@ -667,7 +742,7 @@
   box-sizing: border-box;
 }
 .lm-tnt .tntSegmentLabel {
-  padding: 4px 2px;
+  padding: 6px 2px;
   width: 65%;
   text-align: center;
   box-sizing: border-box;
@@ -834,6 +909,10 @@
 .lm-tnt {
   --sm-cell-min: 50px;
   --sm-cell-max: none;
+  /* The read-only total column (.sm99). Tunable as a pair, like the
+     density and skill-header knobs. */
+  --sm-total-bg:     #e4e6e9;
+  --sm-total-border: #8a9099;
   /* ROW DENSITY, and the only two knobs that set it. The matrix is the one
      screen a judge or scorer reads across a gym, and every athlete costs
      (2 x --sm-cell-my) + (2 x --sm-chip-py) + 2px of chip border in
@@ -1060,9 +1139,30 @@
 }
 
 /* Chip states */
-.lm-tnt .sm99, .lm-tnt .smFinal, .lm-tnt .scoreComplete {
+.lm-tnt .smFinal, .lm-tnt .scoreComplete {
   background: #eefde8 !important;
   border-color: #45b710 !important;
+}
+
+/* .sm99 — the far-right TOTAL. Not a score anyone enters: it is the sum of
+   the real scores to its left, and it cannot be clicked or edited.
+
+   It used to share the green "complete" treatment with .smFinal and
+   .scoreComplete, which said the opposite of the truth — green is the
+   colour of an entered score that is finished, so the one cell nobody can
+   touch looked like the most editable thing in the row.
+
+   Grey ground + dark grey border + bold reads as "derived, read-only":
+   heavier than the blue chips because it is the number you scan across the
+   row for, but colourless because it carries no state of its own.
+   cursor:default matters as much as the colour — .smScore1..6 set
+   cursor:pointer, and a pointer over a cell that ignores clicks is a
+   promise the row does not keep. */
+.lm-tnt .sm99 {
+  background: var(--sm-total-bg, #e4e6e9) !important;
+  border-color: var(--sm-total-border, #8a9099) !important;
+  font-weight: 700;
+  cursor: default;
 }
 .lm-tnt .smNoScore {
   background: var(--bs-secondary-bg, #efefef) !important;
